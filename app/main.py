@@ -220,7 +220,9 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                         "INSERT INTO users (username, hashed_password) VALUES (?, ?)",
                         (username, hashed)
                     )
-                self.send_json({"message": "User registered successfully"}, 201)
+                # Generate access token immediately for seamless auto-login
+                access_token = create_access_token(data={"sub": username})
+                self.send_json({"access_token": access_token, "token_type": "bearer"}, 201)
                 return
 
             # POST /api/auth/login

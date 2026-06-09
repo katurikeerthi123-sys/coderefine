@@ -112,19 +112,13 @@ async function handleAuthSubmit(event) {
       return;
     }
 
-    if (currentAuthTab === "login") {
-      localStorage.setItem("token", data.access_token);
-      document.getElementById("input-username").value = "";
-      document.getElementById("input-password").value = "";
-      showDashboardState();
-      fetchProfile();
-      loadHistory();
-    } else {
-      // Registration successful: switch to login
-      showAuthSuccess();
-      document.getElementById("auth-tab-login").click();
-      document.getElementById("input-password").value = "";
-    }
+    // Both login and registration now return access_token for instant login
+    localStorage.setItem("token", data.access_token);
+    document.getElementById("input-username").value = "";
+    document.getElementById("input-password").value = "";
+    showDashboardState();
+    fetchProfile();
+    loadHistory();
   } catch (err) {
     showAuthError("Server unavailable. Please verify uvicorn is running.");
   }
