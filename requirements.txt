@@ -1,0 +1,3 @@
+# CodeRefine requires ZERO external dependencies!
+# It runs entirely using Python's standard library (http.server, sqlite3, urllib, hashlib).
+# This prevents compilation and wheel-building errors on Windows and modern Python versions (e.g., Python 3.15).
