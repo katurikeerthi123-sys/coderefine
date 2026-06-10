@@ -61,6 +61,49 @@ function setupCodeReviewListeners() {
       saveCurrentSessionCode();
     });
   }
+
+  // Complexity Analyzer input and checkbox listeners
+  const textareaComplexity = document.getElementById("textarea-complexity-code");
+  if (textareaComplexity) {
+    textareaComplexity.addEventListener("input", () => {
+      if (autosaveTimeout) clearTimeout(autosaveTimeout);
+      autosaveTimeout = setTimeout(() => {
+        saveCurrentSessionCode();
+      }, 1000);
+    });
+  }
+  const eli5Complexity = document.getElementById("eli5-complexity");
+  if (eli5Complexity) {
+    eli5Complexity.addEventListener("change", () => {
+      saveCurrentSessionCode();
+    });
+  }
+
+  // Error Debugger input and checkbox listeners
+  const textareaErrorCode = document.getElementById("textarea-error-code");
+  if (textareaErrorCode) {
+    textareaErrorCode.addEventListener("input", () => {
+      if (autosaveTimeout) clearTimeout(autosaveTimeout);
+      autosaveTimeout = setTimeout(() => {
+        saveCurrentSessionCode();
+      }, 1000);
+    });
+  }
+  const textareaErrorLogs = document.getElementById("textarea-error-logs");
+  if (textareaErrorLogs) {
+    textareaErrorLogs.addEventListener("input", () => {
+      if (autosaveTimeout) clearTimeout(autosaveTimeout);
+      autosaveTimeout = setTimeout(() => {
+        saveCurrentSessionCode();
+      }, 1000);
+    });
+  }
+  const eli5Error = document.getElementById("eli5-error");
+  if (eli5Error) {
+    eli5Error.addEventListener("change", () => {
+      saveCurrentSessionCode();
+    });
+  }
 }
 
 function checkSession() {
@@ -198,21 +241,7 @@ async function fetchProfile() {
   }
 }
 
-function resetAllTabsUI() {
-  // 1. Code Review Tab
-  const textareaReview = document.getElementById("textarea-review-code");
-  if (textareaReview) textareaReview.value = "";
-  
-  const diffOrig = document.getElementById("diff-original-code");
-  if (diffOrig) diffOrig.textContent = "";
-  
-  const diffOpt = document.getElementById("diff-optimized-code");
-  if (diffOpt) diffOpt.textContent = "";
-  
-  originalBaseCode = "";
-  resetChatbot();
-  
-  // 2. Complexity Analyzer Tab
+function resetComplexityUIOnly() {
   const textareaComplexity = document.getElementById("textarea-complexity-code");
   if (textareaComplexity) textareaComplexity.value = "";
   
@@ -242,8 +271,9 @@ function resetAllTabsUI() {
   
   const compEli5 = document.getElementById("eli5-complexity");
   if (compEli5) compEli5.checked = false;
-  
-  // 3. Error Debugger Tab
+}
+
+function resetDebuggerUIOnly() {
   const textareaErrorCode = document.getElementById("textarea-error-code");
   if (textareaErrorCode) textareaErrorCode.value = "";
   
@@ -273,8 +303,9 @@ function resetAllTabsUI() {
   
   const errEli5 = document.getElementById("eli5-error");
   if (errEli5) errEli5.checked = false;
-  
-  // 4. Live Screen sharing Tab
+}
+
+function resetScreenshareUIOnly() {
   stopScreenShare();
   
   const ssLang = document.getElementById("screenshare-badge-lang");
@@ -302,6 +333,30 @@ function resetAllTabsUI() {
   
   const ssLoading = document.getElementById("screenshare-loading");
   if (ssLoading) ssLoading.classList.add("hidden");
+}
+
+function resetAllTabsUI() {
+  // 1. Code Review Tab
+  const textareaReview = document.getElementById("textarea-review-code");
+  if (textareaReview) textareaReview.value = "";
+  
+  const diffOrig = document.getElementById("diff-original-code");
+  if (diffOrig) diffOrig.textContent = "";
+  
+  const diffOpt = document.getElementById("diff-optimized-code");
+  if (diffOpt) diffOpt.textContent = "";
+  
+  originalBaseCode = "";
+  resetChatbot();
+  
+  // 2. Complexity Analyzer Tab
+  resetComplexityUIOnly();
+  
+  // 3. Error Debugger Tab
+  resetDebuggerUIOnly();
+  
+  // 4. Live Screen sharing Tab
+  resetScreenshareUIOnly();
 }
 
 async function logout() {
@@ -417,6 +472,161 @@ async function selectHistoryItem(item) {
     chatHistory.forEach(msg => {
       renderChatbotBubble(msg.role, msg.text);
     });
+  }
+
+  // Parse extra_json to restore state in other tabs
+  let extra = {};
+  if (item.extra_json) {
+    if (typeof item.extra_json === "string") {
+      try {
+        extra = JSON.parse(item.extra_json);
+      } catch (e) {
+        console.error("Failed to parse extra_json:", e);
+      }
+    } else if (typeof item.extra_json === "object") {
+      extra = item.extra_json;
+    }
+  }
+
+  // 1. Restore Complexity Analyzer Tab
+  if (extra.complexity) {
+    const c = extra.complexity;
+    const textareaComplexity = document.getElementById("textarea-complexity-code");
+    if (textareaComplexity) textareaComplexity.value = c.code || "";
+    
+    const eli5Complexity = document.getElementById("eli5-complexity");
+    if (eli5Complexity) eli5Complexity.checked = c.eli5 || false;
+    
+    const compBest = document.getElementById("complexity-best");
+    if (compBest) compBest.textContent = c.best || "O(1)";
+    
+    const compAvg = document.getElementById("complexity-average");
+    if (compAvg) compAvg.textContent = c.average || "O(N)";
+    
+    const compWorst = document.getElementById("complexity-worst");
+    if (compWorst) compWorst.textContent = c.worst || "O(N)";
+    
+    const compExpl = document.getElementById("complexity-explanation");
+    if (compExpl) compExpl.textContent = c.explanation || "";
+    
+    const compTrace = document.getElementById("complexity-traceout");
+    if (compTrace) compTrace.textContent = c.traceout || "";
+    
+    const compResult = document.getElementById("complexity-result-container");
+    const compEmpty = document.getElementById("complexity-empty-state");
+    const compLoading = document.getElementById("complexity-loading");
+    if (compResult && compEmpty && compLoading) {
+      if (c.visible) {
+        compResult.classList.remove("hidden");
+        compEmpty.classList.add("hidden");
+        compLoading.classList.add("hidden");
+      } else {
+        compResult.classList.add("hidden");
+        compEmpty.classList.remove("hidden");
+        compLoading.classList.add("hidden");
+      }
+    }
+  } else {
+    resetComplexityUIOnly();
+  }
+
+  // 2. Restore Error Debugger Tab
+  if (extra.debugger) {
+    const d = extra.debugger;
+    const textareaErrorCode = document.getElementById("textarea-error-code");
+    if (textareaErrorCode) textareaErrorCode.value = d.code || "";
+    
+    const textareaErrorLogs = document.getElementById("textarea-error-logs");
+    if (textareaErrorLogs) textareaErrorLogs.value = d.logs || "";
+    
+    const eli5Error = document.getElementById("eli5-error");
+    if (eli5Error) eli5Error.checked = d.eli5 || false;
+    
+    const errSum = document.getElementById("error-summary-txt");
+    if (errSum) errSum.textContent = d.summary || "";
+    
+    const errExpl = document.getElementById("error-explanation-txt");
+    if (errExpl) errExpl.textContent = d.explanation || "";
+    
+    const errFixed = document.getElementById("error-fixed-code");
+    if (errFixed) errFixed.textContent = d.fixed_code || "";
+    
+    const errResources = document.getElementById("error-resources-list");
+    if (errResources) {
+      errResources.innerHTML = d.resources_html || `<p class="text-xs text-slate-500 col-span-2">No educational topics identified.</p>`;
+    }
+    
+    const errResult = document.getElementById("error-result-container");
+    const errEmpty = document.getElementById("error-empty-state");
+    const errLoading = document.getElementById("error-loading");
+    if (errResult && errEmpty && errLoading) {
+      if (d.visible) {
+        errResult.classList.remove("hidden");
+        errEmpty.classList.add("hidden");
+        errLoading.classList.add("hidden");
+      } else {
+        errResult.classList.add("hidden");
+        errEmpty.classList.remove("hidden");
+        errLoading.classList.add("hidden");
+      }
+    }
+  } else {
+    resetDebuggerUIOnly();
+  }
+
+  // 3. Restore Live Screen Sharing Tab
+  if (extra.screenshare) {
+    const s = extra.screenshare;
+    const ssLang = document.getElementById("screenshare-badge-lang");
+    if (ssLang) ssLang.textContent = s.lang || "code";
+    
+    const ssErr = document.getElementById("screenshare-detected-error");
+    if (ssErr) ssErr.textContent = s.error || "Spotted Error Details";
+    
+    const ssExpl = document.getElementById("screenshare-explanation");
+    if (ssExpl) ssExpl.textContent = s.explanation || "";
+    
+    const ssOrig = document.getElementById("screenshare-original-code");
+    if (ssOrig) ssOrig.textContent = s.original_code || "";
+    
+    const ssFixed = document.getElementById("screenshare-fixed-code");
+    if (ssFixed) ssFixed.textContent = s.fixed_code || "";
+    
+    // Restore Screen share chatbot message UI
+    screenshareChatHistory = s.chat_history || [];
+    const ssChatbotBox = document.getElementById("screenshare-chatbot-box");
+    if (ssChatbotBox) {
+      ssChatbotBox.innerHTML = `
+        <div class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-950 dark:text-emerald-200 text-xs p-3 rounded-xl max-w-[85%] self-start">
+          Hello! I am your Screen Share code assistant. Ask me to modify, update, improve, or explain the captured code above.
+        </div>
+      `;
+      screenshareChatHistory.forEach(msg => {
+        renderScreenshareChatbotBubble(msg.role, msg.text);
+      });
+    }
+    
+    originalScreenshareBaseCode = s.fixed_code || "";
+    screenshareUndoStack = [];
+    screenshareRedoStack = [];
+    updateScreenshareUndoRedoRestoreButtons();
+    
+    const ssResult = document.getElementById("screenshare-result-container");
+    const ssEmpty = document.getElementById("screenshare-empty-state");
+    const ssLoading = document.getElementById("screenshare-loading");
+    if (ssResult && ssEmpty && ssLoading) {
+      if (s.visible) {
+        ssResult.classList.remove("hidden");
+        ssEmpty.classList.add("hidden");
+        ssLoading.classList.add("hidden");
+      } else {
+        ssResult.classList.add("hidden");
+        ssEmpty.classList.remove("hidden");
+        ssLoading.classList.add("hidden");
+      }
+    }
+  } else {
+    resetScreenshareUIOnly();
   }
 }
 
@@ -707,6 +917,9 @@ async function runComplexityAnalysis() {
     // Traceout
     document.getElementById("complexity-traceout").textContent = data.traceout || "";
 
+    // Save workspace state immediately
+    await saveCurrentSessionCode();
+
   } catch (err) {
     alert("Network error. Please try again.");
     resetComplexityUI();
@@ -785,6 +998,9 @@ async function runErrorExplain() {
     } else {
       resourcesList.innerHTML = `<p class="text-xs text-slate-500 col-span-2">No educational topics identified.</p>`;
     }
+
+    // Save workspace state immediately
+    await saveCurrentSessionCode();
 
   } catch (err) {
     alert("Diagnostic network exception.");
@@ -914,6 +1130,9 @@ async function captureAndAnalyzeFrame() {
     // Set baseline and reset screenshare chatbot
     originalScreenshareBaseCode = data.fixed_code_snippet || "";
     resetScreenshareChatbot();
+
+    // Save workspace state immediately
+    await saveCurrentSessionCode();
 
   } catch (err) {
     alert("Network vision exception.");
@@ -1409,6 +1628,9 @@ async function sendScreenshareChatbotMessage(event) {
     
     // Push to history
     screenshareChatHistory.push({ role: "model", text: botText });
+
+    // Save workspace state immediately
+    await saveCurrentSessionCode();
     
   } catch (err) {
     const loaderEl = document.getElementById(loaderId);
@@ -1514,6 +1736,7 @@ function applyScreenshareChatbotCode(codeId) {
   }
   
   updateScreenshareUndoRedoRestoreButtons();
+  saveCurrentSessionCode();
 }
 
 function rejectScreenshareChatbotCode(codeId) {
@@ -1526,6 +1749,7 @@ function rejectScreenshareChatbotCode(codeId) {
       </div>
     `;
   }
+  saveCurrentSessionCode();
 }
 
 function undoLastAppliedScreenshareCode() {
@@ -1541,6 +1765,7 @@ function undoLastAppliedScreenshareCode() {
   codeContainer.textContent = screenshareUndoStack.pop();
   
   updateScreenshareUndoRedoRestoreButtons();
+  saveCurrentSessionCode();
 }
 
 function redoLastUndoneScreenshareCode() {
@@ -1556,6 +1781,7 @@ function redoLastUndoneScreenshareCode() {
   codeContainer.textContent = screenshareRedoStack.pop();
   
   updateScreenshareUndoRedoRestoreButtons();
+  saveCurrentSessionCode();
 }
 
 function restoreOriginalScreenshareCode() {
@@ -1573,6 +1799,7 @@ function restoreOriginalScreenshareCode() {
   codeContainer.textContent = originalScreenshareBaseCode;
   
   updateScreenshareUndoRedoRestoreButtons();
+  saveCurrentSessionCode();
 }
 
 function toggleTheme() {
@@ -1588,13 +1815,63 @@ function toggleTheme() {
  
 async function saveCurrentSessionCode() {
   if (!activeReviewId) return;
-  const code = document.getElementById("textarea-review-code").value;
-  const lang = document.getElementById("select-review-lang").value;
+  const code = document.getElementById("textarea-review-code")?.value || "";
+  const lang = document.getElementById("select-review-lang")?.value || "python";
+
+  // Package Complexity tab state
+  const compResultContainer = document.getElementById("complexity-result-container");
+  const complexityState = {
+    code: document.getElementById("textarea-complexity-code")?.value || "",
+    eli5: document.getElementById("eli5-complexity")?.checked || false,
+    best: document.getElementById("complexity-best")?.textContent || "O(1)",
+    average: document.getElementById("complexity-average")?.textContent || "O(N)",
+    worst: document.getElementById("complexity-worst")?.textContent || "O(N)",
+    explanation: document.getElementById("complexity-explanation")?.textContent || "",
+    traceout: document.getElementById("complexity-traceout")?.textContent || "",
+    visible: compResultContainer ? !compResultContainer.classList.contains("hidden") : false
+  };
+
+  // Package Debugger tab state
+  const errResultContainer = document.getElementById("error-result-container");
+  const debuggerState = {
+    code: document.getElementById("textarea-error-code")?.value || "",
+    logs: document.getElementById("textarea-error-logs")?.value || "",
+    eli5: document.getElementById("eli5-error")?.checked || false,
+    summary: document.getElementById("error-summary-txt")?.textContent || "",
+    explanation: document.getElementById("error-explanation-txt")?.textContent || "",
+    fixed_code: document.getElementById("error-fixed-code")?.textContent || "",
+    resources_html: document.getElementById("error-resources-list")?.innerHTML || "",
+    visible: errResultContainer ? !errResultContainer.classList.contains("hidden") : false
+  };
+
+  // Package Screen Share tab state
+  const ssResultContainer = document.getElementById("screenshare-result-container");
+  const screenshareState = {
+    lang: document.getElementById("screenshare-badge-lang")?.textContent || "code",
+    error: document.getElementById("screenshare-detected-error")?.textContent || "Spotted Error Details",
+    explanation: document.getElementById("screenshare-explanation")?.textContent || "",
+    original_code: document.getElementById("screenshare-original-code")?.textContent || "",
+    fixed_code: document.getElementById("screenshare-fixed-code")?.textContent || "",
+    chat_history: screenshareChatHistory || [],
+    visible: ssResultContainer ? !ssResultContainer.classList.contains("hidden") : false
+  };
+
+  const extraJsonObj = {
+    complexity: complexityState,
+    debugger: debuggerState,
+    screenshare: screenshareState
+  };
+
   try {
     await fetch("/api/review/update", {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ id: activeReviewId, code: code, language: lang })
+      body: JSON.stringify({ 
+        id: activeReviewId, 
+        code: code, 
+        language: lang,
+        extra_json: JSON.stringify(extraJsonObj)
+      })
     });
   } catch (err) {
     console.error("Failed to auto-save current session:", err);

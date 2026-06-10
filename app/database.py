@@ -178,6 +178,7 @@ def init_db():
             optimized_code TEXT NOT NULL,
             review_json TEXT NOT NULL,
             chat_json TEXT,
+            extra_json TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
@@ -204,6 +205,28 @@ def init_db():
                 print("Added column chat_json to reviews table.")
             except Exception as e:
                 print(f"Warning: Failed to add chat_json column: {str(e)}")
+                
+        # Check if extra_json exists in reviews table
+        has_extra_json = False
+        if IS_POSTGRES:
+            cursor.execute(
+                "SELECT 1 FROM information_schema.columns WHERE table_name = 'reviews' AND column_name = 'extra_json';"
+            )
+            if cursor.fetchone():
+                has_extra_json = True
+        else:
+            cursor.execute("PRAGMA table_info(reviews);")
+            for row in cursor.fetchall():
+                if row[1] == 'extra_json' or row.get('name') == 'extra_json':
+                    has_extra_json = True
+                    break
+                    
+        if not has_extra_json:
+            try:
+                cursor.execute("ALTER TABLE reviews ADD COLUMN extra_json TEXT;")
+                print("Added column extra_json to reviews table.")
+            except Exception as e:
+                print(f"Warning: Failed to add extra_json column: {str(e)}")
         
         print("Database initialized successfully.")
 

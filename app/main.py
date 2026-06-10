@@ -185,7 +185,7 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                     cursor = conn.cursor()
                     cursor.execute(
                         """
-                        SELECT id, title, language, original_code, optimized_code, review_json, chat_json, created_at
+                        SELECT id, title, language, original_code, optimized_code, review_json, chat_json, extra_json, created_at
                         FROM reviews
                         WHERE user_id = ?
                         ORDER BY created_at DESC
@@ -204,6 +204,7 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                             "optimized_code": row["optimized_code"],
                             "review_json": json.loads(row["review_json"]),
                             "chat_history": json.loads(row["chat_json"]) if row["chat_json"] else [],
+                            "extra_json": row["extra_json"],
                             "created_at": row["created_at"].isoformat() if hasattr(row["created_at"], "isoformat") else str(row["created_at"] or "")
                         })
                 self.send_json(history)
@@ -342,8 +343,8 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                         else:
                             cursor.execute(
                                 """
-                                INSERT INTO reviews (user_id, title, language, original_code, optimized_code, review_json, chat_json)
-                                VALUES (?, ?, ?, ?, ?, ?, ?)
+                                INSERT INTO reviews (user_id, title, language, original_code, optimized_code, review_json, chat_json, extra_json)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                                 """,
                                 (
                                     user["id"],
@@ -352,7 +353,8 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                                     code,
                                     review_result.get("optimized_code", code),
                                     json.dumps(review_result),
-                                    "[]"
+                                    "[]",
+                                    "{}"
                                 )
                             )
                             inserted_id = cursor.lastrowid
@@ -553,8 +555,8 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                     cursor = conn.cursor()
                     cursor.execute(
                         """
-                        INSERT INTO reviews (user_id, title, language, original_code, optimized_code, review_json, chat_json)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        INSERT INTO reviews (user_id, title, language, original_code, optimized_code, review_json, chat_json, extra_json)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
                             user["id"],
@@ -563,7 +565,8 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                             "",
                             "",
                             "{}",
-                            "[]"
+                            "[]",
+                            "{}"
                         )
                     )
                     new_id = cursor.lastrowid
@@ -575,7 +578,8 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                     "original_code": "",
                     "optimized_code": "",
                     "review_json": {},
-                    "chat_history": []
+                    "chat_history": [],
+                    "extra_json": {}
                 }, 201)
                 return
 
@@ -590,6 +594,7 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                 code = data.get("code", "")
                 title = data.get("title")
                 language = data.get("language")
+                extra_json = data.get("extra_json")
                 
                 with get_db() as conn:
                     cursor = conn.cursor()
@@ -599,14 +604,24 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                         self.send_error_json("Review item not found", 404)
                         return
                         
-                    if title and language:
-                        cursor.execute("UPDATE reviews SET original_code = ?, title = ?, language = ? WHERE id = ?", (code, title, language, review_id))
-                    elif title:
-                        cursor.execute("UPDATE reviews SET original_code = ?, title = ? WHERE id = ?", (code, title, review_id))
-                    elif language:
-                        cursor.execute("UPDATE reviews SET original_code = ?, language = ? WHERE id = ?", (code, language, review_id))
-                    else:
-                        cursor.execute("UPDATE reviews SET original_code = ? WHERE id = ?", (code, review_id))
+                    # Build dynamic SQL update
+                    update_fields = ["original_code = ?"]
+                    params = [code]
+                    
+                    if title:
+                        update_fields.append("title = ?")
+                        params.append(title)
+                    if language:
+                        update_fields.append("language = ?")
+                        params.append(language)
+                    if extra_json:
+                        update_fields.append("extra_json = ?")
+                        params.append(extra_json)
+                        
+                    params.append(review_id)
+                    
+                    sql = f"UPDATE reviews SET {', '.join(update_fields)} WHERE id = ?"
+                    cursor.execute(sql, tuple(params))
                         
                 self.send_json({"message": "Session updated successfully"})
                 return
