@@ -293,7 +293,7 @@ function selectHistoryItem(item) {
   const chatbotBox = document.getElementById("chatbot-box");
   if (chatbotBox) {
     chatbotBox.innerHTML = `
-      <div class="bg-indigo-500/10 border border-indigo-500/20 text-indigo-200 text-xs p-3 rounded-xl max-w-[85%] self-start">
+      <div class="bg-indigo-500/10 border border-indigo-500/20 text-indigo-950 dark:text-indigo-200 text-xs p-3 rounded-xl max-w-[85%] self-start">
         Hello! I am your Code Review assistant. Ask me to modify, update, improve, or explain the uploaded code above.
       </div>
     `;
@@ -847,7 +847,7 @@ function resetChatbot() {
   const chatbotBox = document.getElementById("chatbot-box");
   if (chatbotBox) {
     chatbotBox.innerHTML = `
-      <div class="bg-indigo-500/10 border border-indigo-500/20 text-indigo-200 text-xs p-3 rounded-xl max-w-[85%] self-start">
+      <div class="bg-indigo-500/10 border border-indigo-500/20 text-indigo-950 dark:text-indigo-200 text-xs p-3 rounded-xl max-w-[85%] self-start">
         Hello! I am your Code Review assistant. Ask me to modify, update, improve, or explain the uploaded code above.
       </div>
     `;
@@ -1166,7 +1166,7 @@ function resetScreenshareChatbot() {
   const chatbotBox = document.getElementById("screenshare-chatbot-box");
   if (chatbotBox) {
     chatbotBox.innerHTML = `
-      <div class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-200 text-xs p-3 rounded-xl max-w-[85%] self-start">
+      <div class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-950 dark:text-emerald-200 text-xs p-3 rounded-xl max-w-[85%] self-start">
         Hello! I am your Screen Share code assistant. Ask me to modify, update, improve, or explain the captured code above.
       </div>
     `;
