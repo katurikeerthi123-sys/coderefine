@@ -198,6 +198,112 @@ async function fetchProfile() {
   }
 }
 
+function resetAllTabsUI() {
+  // 1. Code Review Tab
+  const textareaReview = document.getElementById("textarea-review-code");
+  if (textareaReview) textareaReview.value = "";
+  
+  const diffOrig = document.getElementById("diff-original-code");
+  if (diffOrig) diffOrig.textContent = "";
+  
+  const diffOpt = document.getElementById("diff-optimized-code");
+  if (diffOpt) diffOpt.textContent = "";
+  
+  originalBaseCode = "";
+  resetChatbot();
+  
+  // 2. Complexity Analyzer Tab
+  const textareaComplexity = document.getElementById("textarea-complexity-code");
+  if (textareaComplexity) textareaComplexity.value = "";
+  
+  const compBest = document.getElementById("complexity-best");
+  if (compBest) compBest.textContent = "O(1)";
+  
+  const compAvg = document.getElementById("complexity-average");
+  if (compAvg) compAvg.textContent = "O(N)";
+  
+  const compWorst = document.getElementById("complexity-worst");
+  if (compWorst) compWorst.textContent = "O(N)";
+  
+  const compExpl = document.getElementById("complexity-explanation");
+  if (compExpl) compExpl.textContent = "";
+  
+  const compTrace = document.getElementById("complexity-traceout");
+  if (compTrace) compTrace.textContent = "";
+  
+  const compResult = document.getElementById("complexity-result-container");
+  if (compResult) compResult.classList.add("hidden");
+  
+  const compEmpty = document.getElementById("complexity-empty-state");
+  if (compEmpty) compEmpty.classList.remove("hidden");
+  
+  const compLoading = document.getElementById("complexity-loading");
+  if (compLoading) compLoading.classList.add("hidden");
+  
+  const compEli5 = document.getElementById("eli5-complexity");
+  if (compEli5) compEli5.checked = false;
+  
+  // 3. Error Debugger Tab
+  const textareaErrorCode = document.getElementById("textarea-error-code");
+  if (textareaErrorCode) textareaErrorCode.value = "";
+  
+  const textareaErrorLogs = document.getElementById("textarea-error-logs");
+  if (textareaErrorLogs) textareaErrorLogs.value = "";
+  
+  const errSum = document.getElementById("error-summary-txt");
+  if (errSum) errSum.textContent = "";
+  
+  const errExpl = document.getElementById("error-explanation-txt");
+  if (errExpl) errExpl.textContent = "";
+  
+  const errFixed = document.getElementById("error-fixed-code");
+  if (errFixed) errFixed.textContent = "";
+  
+  const errResources = document.getElementById("error-resources-list");
+  if (errResources) errResources.innerHTML = `<p class="text-xs text-slate-500 col-span-2">No educational topics identified.</p>`;
+  
+  const errResult = document.getElementById("error-result-container");
+  if (errResult) errResult.classList.add("hidden");
+  
+  const errEmpty = document.getElementById("error-empty-state");
+  if (errEmpty) errEmpty.classList.remove("hidden");
+  
+  const errLoading = document.getElementById("error-loading");
+  if (errLoading) errLoading.classList.add("hidden");
+  
+  const errEli5 = document.getElementById("eli5-error");
+  if (errEli5) errEli5.checked = false;
+  
+  // 4. Live Screen sharing Tab
+  stopScreenShare();
+  
+  const ssLang = document.getElementById("screenshare-badge-lang");
+  if (ssLang) ssLang.textContent = "code";
+  
+  const ssErr = document.getElementById("screenshare-detected-error");
+  if (ssErr) ssErr.textContent = "Spotted Error Details";
+  
+  const ssExpl = document.getElementById("screenshare-explanation");
+  if (ssExpl) ssExpl.textContent = "";
+  
+  const ssOrig = document.getElementById("screenshare-original-code");
+  if (ssOrig) ssOrig.textContent = "";
+  
+  const ssFixed = document.getElementById("screenshare-fixed-code");
+  if (ssFixed) ssFixed.textContent = "";
+  
+  resetScreenshareChatbot();
+  
+  const ssResult = document.getElementById("screenshare-result-container");
+  if (ssResult) ssResult.classList.add("hidden");
+  
+  const ssEmpty = document.getElementById("screenshare-empty-state");
+  if (ssEmpty) ssEmpty.classList.remove("hidden");
+  
+  const ssLoading = document.getElementById("screenshare-loading");
+  if (ssLoading) ssLoading.classList.add("hidden");
+}
+
 async function logout() {
   await saveCurrentSessionCode();
   
@@ -206,14 +312,7 @@ async function logout() {
   activeReviewId = null;
   chatHistory = [];
   
-  // Reset fields
-  document.getElementById("textarea-review-code").value = "";
-  document.getElementById("textarea-complexity-code").value = "";
-  document.getElementById("textarea-error-code").value = "";
-  document.getElementById("textarea-error-logs").value = "";
-  
-  // Reset stream
-  stopScreenShare();
+  resetAllTabsUI();
   
   // Show auth layout
   showAuthState();
@@ -911,14 +1010,9 @@ async function startNewChat() {
     // Set the new review ID as active
     activeReviewId = newReview.id;
     
-    // Reset inputs and workspace code views
-    document.getElementById("textarea-review-code").value = "";
-    document.getElementById("diff-original-code").textContent = "";
-    document.getElementById("diff-optimized-code").textContent = "";
-    originalBaseCode = "";
+    // Reset all tabs UI to default empty states
+    resetAllTabsUI();
     
-    // Clear chat history and set interface to chatbot focus
-    resetChatbot();
     displayCodeReviewResults(newReview);
     
     // Reload history panel so the new copy is displayed in the sidebar
