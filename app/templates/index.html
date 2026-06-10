@@ -16,7 +16,15 @@
   <!-- Custom CSS stylesheet -->
   <link rel="stylesheet" href="/static/css/styles.css">
   <script>
+    // Theme Init: Default is Light Mode, restore preference if saved
+    if (localStorage.getItem("theme") === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+
     tailwind.config = {
+      darkMode: 'class',
       theme: {
         extend: {
           fontFamily: {
@@ -32,20 +40,20 @@
 <body class="min-h-screen flex flex-col font-sans">
 
   <!-- ================= AUTH PORTAL SECTION ================= -->
-  <div id="auth-portal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-lg px-4">
-    <div class="w-full max-w-md glass-panel rounded-2xl border border-white/10 shadow-2xl p-8 glow-indigo">
+  <div id="auth-portal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-100/80 dark:bg-slate-950/80 backdrop-blur-lg px-4">
+    <div class="w-full max-w-md glass-panel rounded-2xl border border-slate-200/50 dark:border-white/10 shadow-2xl p-8 glow-indigo">
       <div class="text-center mb-8">
         <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 mb-3">
           <i class="fa-solid fa-wand-magic-sparkles text-3xl"></i>
         </div>
-        <h2 class="text-3xl font-extrabold font-outfit tracking-tight text-white">CodeRefine</h2>
+        <h2 class="text-3xl font-extrabold font-outfit tracking-tight text-slate-900 dark:text-white">CodeRefine</h2>
         <p class="text-slate-400 text-sm mt-1">Generative AI-Powered Optimization Engine</p>
       </div>
 
       <!-- Auth Tabs -->
-      <div class="flex border-b border-white/10 mb-6">
-        <button id="auth-tab-login" class="flex-1 pb-3 text-center font-medium border-b-2 border-indigo-500 text-white transition-all">Login</button>
-        <button id="auth-tab-register" class="flex-1 pb-3 text-center font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all">Register</button>
+      <div class="flex border-b border-slate-200 dark:border-white/10 mb-6">
+        <button id="auth-tab-login" class="flex-1 pb-3 text-center font-medium border-b-2 border-indigo-500 text-slate-900 dark:text-white transition-all">Login</button>
+        <button id="auth-tab-register" class="flex-1 pb-3 text-center font-medium border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-all">Register</button>
       </div>
 
       <!-- Error Message Banner -->
@@ -63,22 +71,22 @@
       <!-- Login/Register Form -->
       <form id="auth-form" class="space-y-4" onsubmit="handleAuthSubmit(event)">
         <div>
-          <label for="input-username" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Username</label>
+          <label for="input-username" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Username</label>
           <div class="relative">
             <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
               <i class="fa-solid fa-user"></i>
             </span>
-            <input type="text" id="input-username" required class="w-full bg-slate-900 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-slate-600" placeholder="developer123">
+            <input type="text" id="input-username" required class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl py-3 pl-10 pr-4 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-slate-400 dark:placeholder-slate-600" placeholder="developer123">
           </div>
         </div>
 
         <div>
-          <label for="input-password" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Password</label>
+          <label for="input-password" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Password</label>
           <div class="relative">
             <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
               <i class="fa-solid fa-lock"></i>
             </span>
-            <input type="password" id="input-password" required class="w-full bg-slate-900 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-slate-600" placeholder="••••••••">
+            <input type="password" id="input-password" required class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl py-3 pl-10 pr-4 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-slate-400 dark:placeholder-slate-600" placeholder="••••••••">
           </div>
         </div>
 
@@ -95,14 +103,14 @@
   <div id="dashboard" class="hidden flex-1 flex flex-col md:flex-row relative">
 
     <!-- COLLAPSIBLE SIDEBAR: SQLite Review History -->
-    <aside id="sidebar" class="w-full md:w-80 glass-panel border-r border-white/10 flex flex-col sidebar-transition z-40">
+    <aside id="sidebar" class="w-full md:w-80 glass-panel border-r border-slate-200/50 dark:border-white/10 flex flex-col sidebar-transition z-40">
       <!-- Sidebar Header -->
-      <div class="p-4 border-b border-white/10 flex items-center justify-between">
-        <h2 class="font-outfit font-semibold text-lg text-white flex items-center gap-2">
+      <div class="p-4 border-b border-slate-200/50 dark:border-white/10 flex items-center justify-between">
+        <h2 class="font-outfit font-semibold text-lg text-slate-900 dark:text-white flex items-center gap-2">
           <i class="fa-solid fa-clock-rotate-left text-indigo-400 text-sm"></i>
           Review History
         </h2>
-        <button id="btn-collapse-sidebar" onclick="toggleSidebar()" class="text-slate-400 hover:text-white p-1.5 hover:bg-white/5 rounded-lg transition-all" title="Collapse Sidebar">
+        <button id="btn-collapse-sidebar" onclick="toggleSidebar()" class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white p-1.5 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-all" title="Collapse Sidebar">
           <i class="fa-solid fa-angles-left"></i>
         </button>
       </div>
@@ -114,18 +122,18 @@
       </div>
 
       <!-- Profile Section -->
-      <div class="p-4 border-t border-white/10 bg-slate-950/40">
+      <div class="p-4 border-t border-slate-200/50 dark:border-white/10 bg-slate-50/50 dark:bg-slate-950/40">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold font-outfit shadow-md shadow-indigo-500/20">
               <span id="user-avatar-initial">U</span>
             </div>
             <div>
-              <p id="user-display-name" class="text-sm font-semibold text-white truncate max-w-[120px]">Developer</p>
-              <span class="text-[10px] text-slate-400 bg-white/5 px-2 py-0.5 rounded-full border border-white/5">Session Active</span>
+              <p id="user-display-name" class="text-sm font-semibold text-slate-900 dark:text-white truncate max-w-[120px]">Developer</p>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded-full border border-slate-200 dark:border-white/5">Session Active</span>
             </div>
           </div>
-          <button onclick="openSettingsModal()" class="text-slate-400 hover:text-indigo-400 p-2 hover:bg-white/5 rounded-lg transition-all" title="Profile Settings">
+          <button onclick="openSettingsModal()" class="text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-all" title="Profile Settings">
             <i class="fa-solid fa-gear"></i>
           </button>
         </div>
@@ -141,7 +149,7 @@
     <main class="flex-1 flex flex-col min-w-0">
       
       <!-- Top Navigation Header -->
-      <header class="h-16 border-b border-white/10 glass-panel px-6 flex items-center justify-between z-30">
+      <header class="h-16 border-b border-slate-200/50 dark:border-white/10 glass-panel px-6 flex items-center justify-between z-30">
         <div class="flex items-center gap-3">
           <div class="md:hidden text-indigo-400 text-xl mr-2">
             <i class="fa-solid fa-wand-magic-sparkles"></i>
@@ -149,7 +157,11 @@
           <h1 class="text-2xl font-bold font-outfit tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">CodeRefine</h1>
         </div>
 
-        <nav class="flex items-center gap-2">
+        <nav class="flex items-center gap-3">
+          <button id="btn-theme-toggle" onclick="toggleTheme()" class="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all flex items-center gap-2">
+            <span class="dark:hidden">🌙 Dark Mode</span>
+            <span class="hidden dark:inline">☀️ Light Mode</span>
+          </button>
           <button onclick="logout()" class="px-4 py-2 text-xs font-semibold text-rose-400 border border-rose-500/20 hover:border-rose-500/40 hover:bg-rose-500/10 rounded-xl transition-all flex items-center gap-2">
             <i class="fa-solid fa-right-from-bracket"></i>
             <span>Log Out</span>
@@ -158,7 +170,7 @@
       </header>
 
       <!-- Workspace Tab Selection -->
-      <div class="bg-slate-950 border-b border-white/10 px-6 overflow-x-auto">
+      <div class="bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-white/10 px-6 overflow-x-auto">
         <div class="flex space-x-1 min-w-[500px]">
           <button id="tab-review" onclick="switchTab('review')" class="px-5 py-3.5 text-sm font-semibold border-b-2 tab-active flex items-center gap-2 transition-all">
             <i class="fa-solid fa-shield-halved text-indigo-400"></i>
@@ -194,11 +206,11 @@
             <div class="lg:col-span-5 flex flex-col space-y-4">
               <div class="glass-panel rounded-2xl p-5 space-y-4">
                 <div class="flex items-center justify-between">
-                  <h3 class="font-outfit font-semibold text-white flex items-center gap-2">
+                  <h3 class="font-outfit font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                     <i class="fa-solid fa-code text-indigo-400"></i>
                     Input Code
                   </h3>
-                  <select id="select-review-lang" class="bg-slate-900 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 transition-all font-semibold">
+                  <select id="select-review-lang" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-indigo-500 transition-all font-semibold">
                     <option value="python">Python</option>
                     <option value="javascript">JavaScript</option>
                     <option value="typescript">TypeScript</option>
@@ -209,7 +221,7 @@
                   </select>
                 </div>
                 
-                <textarea id="textarea-review-code" placeholder="Paste your code here..." class="w-full h-96 bg-slate-950 border border-white/5 rounded-xl p-4 text-slate-300 font-mono text-sm focus:outline-none focus:border-indigo-500 transition-all resize-none"></textarea>
+                <textarea id="textarea-review-code" placeholder="Paste your code here..." class="w-full h-96 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-xl p-4 text-slate-800 dark:text-slate-300 font-mono text-sm focus:outline-none focus:border-indigo-500 transition-all resize-none"></textarea>
                 
                 <button id="btn-run-review" onclick="runCodeReview()" class="w-full bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white rounded-xl py-3.5 font-semibold text-sm transition-all hover:shadow-lg hover:shadow-indigo-500/20 flex items-center justify-center gap-2">
                   <i class="fa-solid fa-wand-magic-sparkles"></i>
@@ -223,17 +235,17 @@
               <!-- Loading State -->
               <div id="review-loading" class="hidden glass-panel rounded-2xl p-12 flex flex-col items-center justify-center space-y-4 h-full min-h-[300px]">
                 <div class="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
-                <p class="text-sm font-medium text-slate-300">CodeRefine is analyzing your algorithms...</p>
-                <p class="text-xs text-slate-500">Checking bugs, security badges, and refactoring performance.</p>
+                <p class="text-sm font-medium text-slate-800 dark:text-slate-300">CodeRefine is analyzing your algorithms...</p>
+                <p class="text-xs text-slate-600 dark:text-slate-500">Checking bugs, security badges, and refactoring performance.</p>
               </div>
 
               <!-- Empty State -->
               <div id="review-empty-state" class="glass-panel rounded-2xl p-12 flex flex-col items-center justify-center text-center space-y-4 h-full min-h-[300px]">
-                <div class="text-slate-600 text-5xl">
+                <div class="text-slate-400 dark:text-slate-600 text-5xl">
                   <i class="fa-solid fa-code-compare"></i>
                 </div>
-                <h3 class="font-outfit font-semibold text-lg text-slate-300">Optimization Awaiting Analysis</h3>
-                <p class="text-slate-500 text-sm max-w-sm">Enter your code in the workspace and click "Analyze & Optimize" to see side-by-side modifications and bugs.</p>
+                <h3 class="font-outfit font-semibold text-lg text-slate-700 dark:text-slate-300">Optimization Awaiting Analysis</h3>
+                <p class="text-slate-600 dark:text-slate-500 text-sm max-w-sm">Enter your code in the workspace and click "Analyze & Optimize" to see side-by-side modifications and bugs.</p>
               </div>
 
               <!-- Output Result Container -->
@@ -242,24 +254,24 @@
                 <!-- Optimization Summary Headers -->
                 <div class="glass-panel rounded-2xl p-5 space-y-4">
                   <div class="flex flex-wrap items-center justify-between gap-3">
-                    <h2 id="review-result-title" class="font-outfit font-bold text-xl text-white">Optimized Output</h2>
+                    <h2 id="review-result-title" class="font-outfit font-bold text-xl text-slate-900 dark:text-white">Optimized Output</h2>
                     <div id="security-badge-container" class="flex flex-wrap gap-2">
                       <!-- Badge Pills Rendered Dynamically -->
                     </div>
                   </div>
                   
                   <!-- Recommended Improvements -->
-                  <div class="bg-indigo-500/5 border border-indigo-500/10 rounded-xl p-4">
-                    <h4 class="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-2">Key Recommendations</h4>
-                    <ul id="review-improvements-list" class="list-disc pl-4 text-xs text-slate-300 space-y-1.5">
+                  <div class="bg-indigo-50/50 dark:bg-indigo-500/5 border border-indigo-100 dark:border-indigo-500/10 rounded-xl p-4">
+                    <h4 class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2">Key Recommendations</h4>
+                    <ul id="review-improvements-list" class="list-disc pl-4 text-xs text-slate-700 dark:text-slate-300 space-y-1.5">
                       <!-- Improvements Dynamic -->
                     </ul>
                   </div>
                 </div>
 
                 <!-- Bug Reports -->
-                <div id="review-bugs-container" class="hidden glass-panel rounded-2xl p-5 space-y-4 border-l-4 border-rose-500 bg-rose-500/5">
-                  <h4 class="font-outfit font-semibold text-rose-400 text-sm flex items-center gap-2">
+                <div id="review-bugs-container" class="hidden glass-panel rounded-2xl p-5 space-y-4 border-l-4 border-rose-500 bg-rose-50/50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/10">
+                  <h4 class="font-outfit font-semibold text-rose-600 dark:text-rose-400 text-sm flex items-center gap-2">
                     <i class="fa-solid fa-triangle-exclamation"></i>
                     Bugs & Flaws Spotted
                   </h4>
@@ -270,61 +282,62 @@
 
                 <!-- Side-by-Side Diff Panels -->
                 <div class="glass-panel rounded-2xl p-5 space-y-4">
-                  <h4 class="font-outfit font-semibold text-white text-sm">Code Refactoring Comparison</h4>
+                  <h4 class="font-outfit font-semibold text-slate-900 dark:text-white text-sm">Code Refactoring Comparison</h4>
                   <div class="code-diff-container">
                     <!-- Original -->
                     <div class="space-y-2">
-                      <div class="text-[10px] uppercase font-semibold text-slate-500 tracking-wider">Original snippet</div>
-                      <div class="bg-slate-950 border border-white/5 rounded-xl p-4 overflow-x-auto h-96">
+                      <div class="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400 tracking-wider">Original snippet</div>
+                      <div class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-xl p-4 overflow-x-auto h-96">
                         <pre><code id="diff-original-code" class="text-xs text-slate-400"></code></pre>
                       </div>
                     </div>
                     <!-- Optimized -->
                     <div class="space-y-2">
                       <div class="flex items-center justify-between">
-                        <div class="text-[10px] uppercase font-semibold text-indigo-400 tracking-wider">Optimized snippet</div>
-                        <button onclick="copyOptimizedCode()" class="text-[10px] text-slate-400 hover:text-white flex items-center gap-1 transition-all">
+                        <div class="text-[10px] uppercase font-semibold text-indigo-600 dark:text-indigo-400 tracking-wider">Optimized snippet</div>
+                        <button onclick="copyOptimizedCode()" class="text-[10px] text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white flex items-center gap-1 transition-all">
                           <i class="fa-solid fa-copy"></i> Copy
                         </button>
                       </div>
-                      <div class="bg-slate-950 border border-indigo-500/10 rounded-xl p-4 overflow-x-auto h-96 relative">
-                        <pre><code id="diff-optimized-code" class="text-xs text-indigo-200"></code></pre>
+                      <div class="bg-slate-50 dark:bg-slate-950 border border-indigo-100 dark:border-indigo-500/10 rounded-xl p-4 overflow-x-auto h-96 relative">
+                        <pre><code id="diff-optimized-code" class="text-xs text-indigo-950 dark:text-indigo-200"></code></pre>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 <!-- Chatbot Integration -->
-                <div class="glass-panel rounded-2xl p-5 space-y-4 border border-white/10">
+                <div class="glass-panel rounded-2xl p-5 space-y-4 border border-slate-200 dark:border-white/10">
                   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <h4 class="font-outfit font-semibold text-white text-sm flex items-center gap-2">
+                    <h4 class="font-outfit font-semibold text-slate-900 dark:text-white text-sm flex items-center gap-2">
                       <i class="fa-solid fa-comments text-indigo-400"></i>
                       Code Assistant Chatbot
                     </h4>
                     <div class="flex flex-wrap items-center gap-2">
-                      <button id="btn-chatbot-restore" onclick="restoreOriginalReviewCode()" class="hidden text-[10px] text-rose-400 hover:text-rose-300 bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 rounded-full transition-all flex items-center gap-1">
+                      <button id="btn-chatbot-restore" onclick="restoreOriginalReviewCode()" class="hidden text-[10px] text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 rounded-full transition-all flex items-center gap-1">
                         <i class="fa-solid fa-rotate"></i> Restore Original
                       </button>
-                      <button id="btn-chatbot-undo" onclick="undoLastAppliedCode()" class="hidden text-[10px] text-amber-400 hover:text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full transition-all flex items-center gap-1">
+                      <button id="btn-chatbot-undo" onclick="undoLastAppliedCode()" class="hidden text-[10px] text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full transition-all flex items-center gap-1">
                         <i class="fa-solid fa-rotate-left"></i> Undo
                       </button>
-                      <button id="btn-chatbot-redo" onclick="redoLastUndoneCode()" class="hidden text-[10px] text-sky-400 hover:text-sky-300 bg-sky-500/10 border border-sky-500/20 px-2.5 py-1 rounded-full transition-all flex items-center gap-1">
+                      <button id="btn-chatbot-redo" onclick="redoLastUndoneCode()" class="hidden text-[10px] text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 bg-sky-500/10 border border-sky-500/20 px-2.5 py-1 rounded-full transition-all flex items-center gap-1">
                         <i class="fa-solid fa-rotate-right"></i> Redo
                       </button>
-                      <span class="text-[10px] text-slate-400 bg-white/5 px-2 py-0.5 rounded-full border border-white/5">Focusing on uploaded code</span>
+                      <button id="btn-chatbot-new" onclick="startNewChat()" class="text-[10px] text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full transition-all flex items-center gap-1">
+                        <i class="fa-solid fa-plus"></i> New Chat
+                      </button>
+                      <span class="text-[10px] text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 px-2 py-0.5 rounded-full">Focusing on uploaded code</span>
                     </div>
                   </div>
                   
                   <!-- Chat box container -->
-                  <div id="chatbot-box" class="h-64 bg-slate-950/60 border border-white/5 rounded-xl p-4 overflow-y-auto space-y-3 flex flex-col scrollbar-thin">
-                    <div class="bg-indigo-500/10 border border-indigo-500/20 text-indigo-200 text-xs p-3 rounded-xl max-w-[85%] self-start">
+                  <div id="chatbot-box" class="h-64 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-white/5 rounded-xl p-4 overflow-y-auto space-y-3 flex flex-col scrollbar-thin">
+                    <div class="bg-indigo-500/10 border border-indigo-500/20 text-indigo-950 dark:text-indigo-200 text-xs p-3 rounded-xl max-w-[85%] self-start">
                       Hello! I am your Code Review assistant. Ask me to modify, update, improve, or explain the uploaded code above.
                     </div>
-                  </div>
-
-                  <!-- Chat input -->
+                     <!-- Chat input -->
                   <form id="chatbot-form" onsubmit="sendChatbotMessage(event)" class="flex gap-2">
-                    <input type="text" id="input-chatbot-msg" placeholder="Ask me to rewrite in a different language, add error handling, etc..." class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500 transition-all" required>
+                    <input type="text" id="input-chatbot-msg" placeholder="Ask me to rewrite in a different language, add error handling, etc..." class="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-slate-800 dark:text-white text-sm focus:outline-none focus:border-indigo-500 transition-all" required>
                     <button type="submit" id="btn-chatbot-send" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-5 py-2.5 font-semibold text-sm transition-all hover:shadow-lg flex items-center gap-1.5">
                       <span>Send</span>
                       <i class="fa-solid fa-paper-plane text-xs"></i>
@@ -346,17 +359,17 @@
             <!-- Left Side Input -->
             <div class="lg:col-span-5 glass-panel rounded-2xl p-5 space-y-4">
               <div class="flex items-center justify-between">
-                <h3 class="font-outfit font-semibold text-white flex items-center gap-2">
+                <h3 class="font-outfit font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                   <i class="fa-solid fa-chart-line text-purple-400"></i>
                   Complexity Check
                 </h3>
                 <div class="flex items-center gap-2">
-                  <label for="eli5-complexity" class="text-xs text-slate-400 cursor-pointer">Explain Like I'm 5</label>
+                  <label for="eli5-complexity" class="text-xs text-slate-600 dark:text-slate-400 cursor-pointer">Explain Like I'm 5</label>
                   <input type="checkbox" id="eli5-complexity" class="accent-indigo-500 w-4 h-4 cursor-pointer">
                 </div>
               </div>
               
-              <textarea id="textarea-complexity-code" placeholder="Paste algorithm or recursive method..." class="w-full h-[400px] bg-slate-950 border border-white/5 rounded-xl p-4 text-slate-300 font-mono text-sm focus:outline-none focus:border-indigo-500 transition-all resize-none"></textarea>
+              <textarea id="textarea-complexity-code" placeholder="Paste algorithm or recursive method..." class="w-full h-[400px] bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-xl p-4 text-slate-800 dark:text-slate-300 font-mono text-sm focus:outline-none focus:border-indigo-500 transition-all resize-none"></textarea>
               
               <button id="btn-run-complexity" onclick="runComplexityAnalysis()" class="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-xl py-3.5 font-semibold text-sm transition-all hover:shadow-lg hover:shadow-purple-500/20 flex items-center justify-center gap-2">
                 <i class="fa-solid fa-magnifying-glass-chart"></i>
@@ -369,50 +382,50 @@
               <!-- Loading -->
               <div id="complexity-loading" class="hidden glass-panel rounded-2xl p-12 flex flex-col items-center justify-center space-y-4 h-full min-h-[300px]">
                 <div class="w-12 h-12 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin"></div>
-                <p class="text-sm font-medium text-slate-300">Calculating asymptotic bounds...</p>
-                <p class="text-xs text-slate-500">Deriving worst-case, best-case recurrence trees.</p>
+                <p class="text-sm font-medium text-slate-800 dark:text-slate-300">Calculating asymptotic bounds...</p>
+                <p class="text-xs text-slate-600 dark:text-slate-500">Deriving worst-case, best-case recurrence trees.</p>
               </div>
 
               <!-- Empty -->
               <div id="complexity-empty-state" class="glass-panel rounded-2xl p-12 flex flex-col items-center justify-center text-center space-y-4 h-full min-h-[300px]">
-                <div class="text-slate-600 text-5xl">
+                <div class="text-slate-400 dark:text-slate-600 text-5xl">
                   <i class="fa-solid fa-stopwatch"></i>
                 </div>
-                <h3 class="font-outfit font-semibold text-lg text-slate-300">Asymptotics Awaiting Analysis</h3>
-                <p class="text-slate-500 text-sm max-w-sm">Paste a complex loop or recursive call to analyze Big-O notation, trace recursion trees, and get intuitive explanations.</p>
+                <h3 class="font-outfit font-semibold text-lg text-slate-700 dark:text-slate-300">Asymptotics Awaiting Analysis</h3>
+                <p class="text-slate-600 dark:text-slate-500 text-sm max-w-sm">Paste a complex loop or recursive call to analyze Big-O notation, trace recursion trees, and get intuitive explanations.</p>
               </div>
 
               <!-- Output Container -->
               <div id="complexity-result-container" class="hidden space-y-4">
                 <!-- Complexity Caps -->
                 <div class="grid grid-cols-3 gap-4">
-                  <div class="glass-panel rounded-xl p-4 text-center border-t-2 border-emerald-500 bg-emerald-500/5">
-                    <div class="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">Best Case</div>
-                    <div id="complexity-best" class="text-2xl font-bold font-outfit text-white mt-1">O(1)</div>
+                  <div class="glass-panel rounded-xl p-4 text-center border-t-2 border-emerald-500 bg-emerald-50/50 dark:bg-emerald-500/5">
+                    <div class="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Best Case</div>
+                    <div id="complexity-best" class="text-2xl font-bold font-outfit text-slate-900 dark:text-white mt-1">O(1)</div>
                   </div>
-                  <div class="glass-panel rounded-xl p-4 text-center border-t-2 border-indigo-500 bg-indigo-500/5">
-                    <div class="text-[10px] font-semibold text-indigo-400 uppercase tracking-wider">Average Case</div>
-                    <div id="complexity-average" class="text-2xl font-bold font-outfit text-white mt-1">O(N)</div>
+                  <div class="glass-panel rounded-xl p-4 text-center border-t-2 border-indigo-500 bg-indigo-50/50 dark:bg-indigo-500/5">
+                    <div class="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Average Case</div>
+                    <div id="complexity-average" class="text-2xl font-bold font-outfit text-slate-900 dark:text-white mt-1">O(N)</div>
                   </div>
-                  <div class="glass-panel rounded-xl p-4 text-center border-t-2 border-rose-500 bg-rose-500/5">
-                    <div class="text-[10px] font-semibold text-rose-400 uppercase tracking-wider">Worst Case</div>
-                    <div id="complexity-worst" class="text-2xl font-bold font-outfit text-white mt-1">O(N²)</div>
+                  <div class="glass-panel rounded-xl p-4 text-center border-t-2 border-rose-500 bg-rose-50/50 dark:bg-rose-500/5">
+                    <div class="text-[10px] font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">Worst Case</div>
+                    <div id="complexity-worst" class="text-2xl font-bold font-outfit text-slate-900 dark:text-white mt-1">O(N²)</div>
                   </div>
                 </div>
 
                 <!-- Explanation Summary -->
                 <div class="glass-panel rounded-2xl p-5 space-y-3">
-                  <h4 class="font-outfit font-semibold text-white text-sm">Summary Explanation</h4>
-                  <p id="complexity-explanation" class="text-sm text-slate-300 leading-relaxed"></p>
+                  <h4 class="font-outfit font-semibold text-slate-900 dark:text-white text-sm">Summary Explanation</h4>
+                  <p id="complexity-explanation" class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed"></p>
                 </div>
 
                 <!-- Step-by-Step Traceout -->
                 <div class="glass-panel rounded-2xl p-5 space-y-3">
-                  <h4 class="font-outfit font-semibold text-purple-400 text-sm flex items-center gap-2">
+                  <h4 class="font-outfit font-semibold text-purple-600 dark:text-purple-400 text-sm flex items-center gap-2">
                     <i class="fa-solid fa-route"></i>
                     Algorithmic Step Traceout
                   </h4>
-                  <pre class="bg-slate-950 border border-white/5 rounded-xl p-4 overflow-x-auto text-slate-300 font-mono text-xs leading-relaxed whitespace-pre-wrap" id="complexity-traceout"></pre>
+                  <pre class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-xl p-4 overflow-x-auto text-slate-700 dark:text-slate-300 font-mono text-xs leading-relaxed whitespace-pre-wrap" id="complexity-traceout"></pre>
                 </div>
               </div>
             </div>
@@ -429,24 +442,24 @@
             <div class="lg:col-span-5 flex flex-col space-y-4">
               <div class="glass-panel rounded-2xl p-5 space-y-4">
                 <div class="flex items-center justify-between">
-                  <h3 class="font-outfit font-semibold text-white flex items-center gap-2">
+                  <h3 class="font-outfit font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                     <i class="fa-solid fa-code text-rose-400"></i>
                     Original Code
                   </h3>
                   <div class="flex items-center gap-2">
-                    <label for="eli5-error" class="text-xs text-slate-400 cursor-pointer">ELI5 Explanation</label>
+                    <label for="eli5-error" class="text-xs text-slate-600 dark:text-slate-400 cursor-pointer">ELI5 Explanation</label>
                     <input type="checkbox" id="eli5-error" class="accent-indigo-500 w-4 h-4 cursor-pointer">
                   </div>
                 </div>
-                <textarea id="textarea-error-code" placeholder="Paste your failing code block..." class="w-full h-56 bg-slate-950 border border-white/5 rounded-xl p-4 text-slate-300 font-mono text-sm focus:outline-none focus:border-indigo-500 transition-all resize-none"></textarea>
+                <textarea id="textarea-error-code" placeholder="Paste your failing code block..." class="w-full h-56 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-xl p-4 text-slate-800 dark:text-slate-300 font-mono text-sm focus:outline-none focus:border-indigo-500 transition-all resize-none"></textarea>
               </div>
 
               <div class="glass-panel rounded-2xl p-5 space-y-4">
-                <h3 class="font-outfit font-semibold text-white flex items-center gap-2">
+                <h3 class="font-outfit font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                   <i class="fa-solid fa-terminal text-slate-400"></i>
                   Console Error Logs / Tracebacks
                 </h3>
-                <textarea id="textarea-error-logs" placeholder="Paste the compiler trace, crash logs, or console error message here..." class="w-full h-40 bg-slate-950 border border-white/5 rounded-xl p-4 text-slate-300 font-mono text-sm focus:outline-none focus:border-indigo-500 transition-all resize-none"></textarea>
+                <textarea id="textarea-error-logs" placeholder="Paste the compiler trace, crash logs, or console error message here..." class="w-full h-40 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-xl p-4 text-slate-800 dark:text-slate-300 font-mono text-sm focus:outline-none focus:border-indigo-500 transition-all resize-none"></textarea>
                 
                 <button id="btn-run-error" onclick="runErrorExplain()" class="w-full bg-gradient-to-r from-rose-500 to-purple-600 hover:from-rose-600 hover:to-purple-700 text-white rounded-xl py-3.5 font-semibold text-sm transition-all hover:shadow-lg hover:shadow-rose-500/20 flex items-center justify-center gap-2">
                   <i class="fa-solid fa-circle-notch animate-spin hidden" id="spinner-error"></i>
@@ -461,48 +474,48 @@
               <!-- Loading -->
               <div id="error-loading" class="hidden glass-panel rounded-2xl p-12 flex flex-col items-center justify-center space-y-4 h-full min-h-[300px]">
                 <div class="w-12 h-12 border-4 border-rose-500/20 border-t-rose-500 rounded-full animate-spin"></div>
-                <p class="text-sm font-medium text-slate-300">Debugging the traceback logs...</p>
-                <p class="text-xs text-slate-500">Isolating memory faults, type mismatches, and syntax bounds.</p>
+                <p class="text-sm font-medium text-slate-800 dark:text-slate-300">Debugging the traceback logs...</p>
+                <p class="text-xs text-slate-600 dark:text-slate-500">Isolating memory faults, type mismatches, and syntax bounds.</p>
               </div>
 
               <!-- Empty -->
               <div id="error-empty-state" class="glass-panel rounded-2xl p-12 flex flex-col items-center justify-center text-center space-y-4 h-full min-h-[300px]">
-                <div class="text-slate-600 text-5xl">
+                <div class="text-slate-400 dark:text-slate-600 text-5xl">
                   <i class="fa-solid fa-dumpster-fire"></i>
                 </div>
-                <h3 class="font-outfit font-semibold text-lg text-slate-300">Diagnostic Panel Ready</h3>
-                <p class="text-slate-500 text-sm max-w-sm">Provide both your failing source code and console output, then click "Diagnose Error" to retrieve fixes and customized tutorials.</p>
+                <h3 class="font-outfit font-semibold text-lg text-slate-700 dark:text-slate-300">Diagnostic Panel Ready</h3>
+                <p class="text-slate-600 dark:text-slate-500 text-sm max-w-sm">Provide both your failing source code and console output, then click "Diagnose Error" to retrieve fixes and customized tutorials.</p>
               </div>
 
               <!-- Output Container -->
               <div id="error-result-container" class="hidden space-y-4">
                 
                 <!-- Diagnosis Header -->
-                <div class="glass-panel rounded-2xl p-5 border-l-4 border-rose-500 bg-rose-500/5 space-y-2">
-                  <div class="text-[10px] font-semibold text-rose-400 uppercase tracking-wider">Identified Root Issue</div>
-                  <h3 id="error-summary-txt" class="font-outfit font-bold text-lg text-white"></h3>
+                <div class="glass-panel rounded-2xl p-5 border-l-4 border-rose-500 bg-rose-50/50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/10 space-y-2">
+                  <div class="text-[10px] font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">Identified Root Issue</div>
+                  <h3 id="error-summary-txt" class="font-outfit font-bold text-lg text-slate-900 dark:text-white"></h3>
                 </div>
 
                 <!-- Explanation -->
                 <div class="glass-panel rounded-2xl p-5 space-y-2">
-                  <h4 class="font-outfit font-semibold text-white text-sm">Explanation & Fix Strategy</h4>
-                  <p id="error-explanation-txt" class="text-sm text-slate-300 leading-relaxed"></p>
+                  <h4 class="font-outfit font-semibold text-slate-900 dark:text-white text-sm">Explanation & Fix Strategy</h4>
+                  <p id="error-explanation-txt" class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed"></p>
                 </div>
 
                 <!-- Fixed Code Block -->
                 <div class="glass-panel rounded-2xl p-5 space-y-3">
                   <div class="flex items-center justify-between">
-                    <h4 class="font-outfit font-semibold text-indigo-400 text-sm">Proposed Corrected Code</h4>
-                    <button onclick="copyFixedErrorCode()" class="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-all">
+                    <h4 class="font-outfit font-semibold text-indigo-600 dark:text-indigo-400 text-sm">Proposed Corrected Code</h4>
+                    <button onclick="copyFixedErrorCode()" class="text-xs text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white flex items-center gap-1 transition-all">
                       <i class="fa-solid fa-copy"></i> Copy
                     </button>
                   </div>
-                  <pre class="bg-slate-950 border border-indigo-500/10 rounded-xl p-4 overflow-x-auto text-indigo-200 font-mono text-xs leading-relaxed" id="error-fixed-code"></pre>
+                  <pre class="bg-slate-50 dark:bg-slate-950 border border-indigo-100 dark:border-indigo-500/10 rounded-xl p-4 overflow-x-auto text-indigo-950 dark:text-indigo-200 font-mono text-xs leading-relaxed" id="error-fixed-code"></pre>
                 </div>
 
                 <!-- Educational Resources -->
                 <div class="glass-panel rounded-2xl p-5 space-y-4">
-                  <h4 class="font-outfit font-semibold text-white text-sm">Custom Educational Resources</h4>
+                  <h4 class="font-outfit font-semibold text-slate-900 dark:text-white text-sm">Custom Educational Resources</h4>
                   <div id="error-resources-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <!-- Dynamically populated YouTube / GFG boxes -->
                   </div>
@@ -521,16 +534,16 @@
             
             <!-- Capture Controls -->
             <div class="lg:col-span-5 glass-panel rounded-2xl p-5 space-y-4 flex flex-col">
-              <h3 class="font-outfit font-semibold text-white flex items-center gap-2">
+              <h3 class="font-outfit font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                 <i class="fa-solid fa-desktop text-emerald-400"></i>
                 Screen Frame Capture Console
               </h3>
-              <p class="text-xs text-slate-400 leading-relaxed">
+              <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 Run an active screen sharing session on this page. Focus your code editor, trigger syntax underlines, and hit **"Capture & Analyze Screen"** to process the snapshot using multimodal Groq vision.
               </p>
 
               <!-- Video Stream Container -->
-              <div class="relative bg-slate-950 border border-white/5 rounded-xl aspect-video overflow-hidden flex items-center justify-center">
+              <div class="relative bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-xl aspect-video overflow-hidden flex items-center justify-center">
                 <!-- Recording pulse dot -->
                 <div id="screenshare-pulse-dot" class="hidden absolute top-3 right-3 flex items-center gap-1.5 bg-rose-500/90 text-white text-[10px] px-2 py-0.5 rounded-full font-semibold pulse-recording z-10">
                   <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
@@ -541,13 +554,13 @@
                 
                 <div id="screenshare-video-placeholder" class="text-center p-6 space-y-3">
                   <i class="fa-solid fa-video-slash text-slate-700 text-4xl"></i>
-                  <p class="text-xs text-slate-500">Video stream offline. Initiate sharing below.</p>
+                  <p class="text-xs text-slate-600 dark:text-slate-500">Video stream offline. Initiate sharing below.</p>
                 </div>
               </div>
 
               <!-- Action Buttons -->
               <div class="grid grid-cols-2 gap-4">
-                <button id="btn-toggle-share" onclick="toggleScreenShare()" class="bg-slate-900 border border-white/10 hover:border-white/20 text-white rounded-xl py-3 font-semibold text-xs transition-all flex items-center justify-center gap-2">
+                <button id="btn-toggle-share" onclick="toggleScreenShare()" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-800 dark:text-white rounded-xl py-3 font-semibold text-xs transition-all flex items-center justify-center gap-2">
                   <i class="fa-solid fa-share-nodes text-indigo-400"></i>
                   <span id="btn-toggle-share-txt">Share Screen</span>
                 </button>
@@ -563,88 +576,88 @@
               <!-- Loading -->
               <div id="screenshare-loading" class="hidden glass-panel rounded-2xl p-12 flex flex-col items-center justify-center space-y-4 h-full min-h-[300px]">
                 <div class="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
-                <p class="text-sm font-medium text-slate-300">Processing visual screen frame...</p>
-                <p class="text-xs text-slate-500">Groq is inspecting character tokens and IDE syntax markers.</p>
+                <p class="text-sm font-medium text-slate-800 dark:text-slate-300">Processing visual screen frame...</p>
+                <p class="text-xs text-slate-600 dark:text-slate-500">Groq is inspecting character tokens and IDE syntax markers.</p>
               </div>
 
               <!-- Empty -->
               <div id="screenshare-empty-state" class="glass-panel rounded-2xl p-12 flex flex-col items-center justify-center text-center space-y-4 h-full min-h-[300px]">
-                <div class="text-slate-600 text-5xl">
+                <div class="text-slate-400 dark:text-slate-600 text-5xl">
                   <i class="fa-solid fa-eye"></i>
                 </div>
-                <h3 class="font-outfit font-semibold text-lg text-slate-300">Vision Diagnostic Terminal</h3>
-                <p class="text-slate-500 text-sm max-w-sm">Start sharing a window, overlay the problem area on the console stream, and capture to activate Groq Multimodal troubleshooting.</p>
+                <h3 class="font-outfit font-semibold text-lg text-slate-700 dark:text-slate-300">Vision Diagnostic Terminal</h3>
+                <p class="text-slate-600 dark:text-slate-500 text-sm max-w-sm">Start sharing a window, overlay the problem area on the console stream, and capture to activate Groq Multimodal troubleshooting.</p>
               </div>
 
               <!-- Capture Result Output -->
               <div id="screenshare-result-container" class="hidden space-y-4">
                 
                 <!-- Language / spotted error -->
-                <div class="glass-panel rounded-2xl p-5 border-l-4 border-emerald-500 bg-emerald-500/5 space-y-2">
+                <div class="glass-panel rounded-2xl p-5 border-l-4 border-emerald-500 bg-emerald-50/50 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-500/10 space-y-2">
                   <div class="flex items-center justify-between">
-                    <span id="screenshare-badge-lang" class="text-[10px] font-semibold text-emerald-400 bg-emerald-400/10 border border-emerald-400/25 px-2.5 py-1 rounded-full uppercase tracking-wider">python</span>
+                    <span id="screenshare-badge-lang" class="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-400/10 border border-emerald-400/25 px-2.5 py-1 rounded-full uppercase tracking-wider">python</span>
                     <span class="text-xs text-slate-500">Screen OCR Extracted</span>
                   </div>
-                  <h3 id="screenshare-detected-error" class="font-outfit font-bold text-lg text-white mt-1">Spotted Error Details</h3>
+                  <h3 id="screenshare-detected-error" class="font-outfit font-bold text-lg text-slate-900 dark:text-white mt-1">Spotted Error Details</h3>
                 </div>
 
                 <!-- Explanation -->
                 <div class="glass-panel rounded-2xl p-5 space-y-2">
-                  <h4 class="font-outfit font-semibold text-white text-sm">Visual Diagnostics</h4>
-                  <p id="screenshare-explanation" class="text-sm text-slate-300 leading-relaxed"></p>
+                  <h4 class="font-outfit font-semibold text-slate-900 dark:text-white text-sm">Visual Diagnostics</h4>
+                  <p id="screenshare-explanation" class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed"></p>
                 </div>
 
                 <!-- Snippets original vs fixed -->
                 <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
                   <!-- Original Snippet -->
                   <div class="glass-panel rounded-xl p-5 space-y-2">
-                    <div class="text-[10px] uppercase font-semibold text-slate-500 tracking-wider">Extracted Broken Code</div>
-                    <pre class="bg-slate-950 border border-white/5 rounded-xl p-3 overflow-x-auto text-slate-400 font-mono text-xs max-h-56" id="screenshare-original-code"></pre>
+                    <div class="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400 tracking-wider">Extracted Broken Code</div>
+                    <pre class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-xl p-3 overflow-x-auto text-slate-600 dark:text-slate-400 font-mono text-xs max-h-56" id="screenshare-original-code"></pre>
                   </div>
                   
                   <!-- Fixed Snippet -->
                   <div class="glass-panel rounded-xl p-5 space-y-2">
                     <div class="flex items-center justify-between">
-                      <div class="text-[10px] uppercase font-semibold text-emerald-400 tracking-wider">Proposed Corrected Code</div>
-                      <button onclick="copyScreenshareCode()" class="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-all">
+                      <div class="text-[10px] uppercase font-semibold text-emerald-600 dark:text-emerald-400 tracking-wider">Proposed Corrected Code</div>
+                      <button onclick="copyScreenshareCode()" class="text-xs text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white flex items-center gap-1 transition-all">
                         <i class="fa-solid fa-copy"></i>
                       </button>
                     </div>
-                    <pre class="bg-slate-950 border border-emerald-500/10 rounded-xl p-3 overflow-x-auto text-emerald-200 font-mono text-xs max-h-56" id="screenshare-fixed-code"></pre>
+                    <pre class="bg-slate-50 dark:bg-slate-950 border border-emerald-100 dark:border-emerald-500/10 rounded-xl p-3 overflow-x-auto text-emerald-950 dark:text-emerald-200 font-mono text-xs max-h-56" id="screenshare-fixed-code"></pre>
                   </div>
                 </div>
 
                 <!-- Live Screen Share Chatbot -->
-                <div class="glass-panel rounded-2xl p-5 space-y-4 border border-white/10 mt-4">
+                <div class="glass-panel rounded-2xl p-5 space-y-4 border border-slate-200 dark:border-white/10 mt-4">
                   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <h4 class="font-outfit font-semibold text-white text-sm flex items-center gap-2">
+                    <h4 class="font-outfit font-semibold text-slate-900 dark:text-white text-sm flex items-center gap-2">
                       <i class="fa-solid fa-comments text-emerald-400"></i>
                       Screen Share Code Assistant
                     </h4>
                     <div class="flex flex-wrap items-center gap-2">
-                      <button id="btn-screenshare-restore" onclick="restoreOriginalScreenshareCode()" class="hidden text-[10px] text-rose-400 hover:text-rose-300 bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 rounded-full transition-all flex items-center gap-1">
+                      <button id="btn-screenshare-restore" onclick="restoreOriginalScreenshareCode()" class="hidden text-[10px] text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 rounded-full transition-all flex items-center gap-1">
                         <i class="fa-solid fa-rotate"></i> Restore Original
                       </button>
-                      <button id="btn-screenshare-undo" onclick="undoLastAppliedScreenshareCode()" class="hidden text-[10px] text-amber-400 hover:text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full transition-all flex items-center gap-1">
+                      <button id="btn-screenshare-undo" onclick="undoLastAppliedScreenshareCode()" class="hidden text-[10px] text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full transition-all flex items-center gap-1">
                         <i class="fa-solid fa-rotate-left"></i> Undo
                       </button>
-                      <button id="btn-screenshare-redo" onclick="redoLastUndoneScreenshareCode()" class="hidden text-[10px] text-sky-400 hover:text-sky-300 bg-sky-500/10 border border-sky-500/20 px-2.5 py-1 rounded-full transition-all flex items-center gap-1">
+                      <button id="btn-screenshare-redo" onclick="redoLastUndoneScreenshareCode()" class="hidden text-[10px] text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 bg-sky-500/10 border border-sky-500/20 px-2.5 py-1 rounded-full transition-all flex items-center gap-1">
                         <i class="fa-solid fa-rotate-right"></i> Redo
                       </button>
-                      <span class="text-[10px] text-slate-400 bg-white/5 px-2 py-0.5 rounded-full border border-white/5">Focusing on captured code</span>
+                      <span class="text-[10px] text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 px-2 py-0.5 rounded-full">Focusing on captured code</span>
                     </div>
                   </div>
                   
                   <!-- Chat box container -->
-                  <div id="screenshare-chatbot-box" class="h-64 bg-slate-950/60 border border-white/5 rounded-xl p-4 overflow-y-auto space-y-3 flex flex-col scrollbar-thin">
-                    <div class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-200 text-xs p-3 rounded-xl max-w-[85%] self-start">
+                  <div id="screenshare-chatbot-box" class="h-64 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-white/5 rounded-xl p-4 overflow-y-auto space-y-3 flex flex-col scrollbar-thin">
+                    <div class="bg-emerald-50/50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 text-emerald-950 dark:text-emerald-200 text-xs p-3 rounded-xl max-w-[85%] self-start">
                       Hello! I am your Screen Share code assistant. Ask me to modify, update, improve, or explain the captured code above.
                     </div>
                   </div>
 
                   <!-- Chat input -->
                   <form id="screenshare-chatbot-form" onsubmit="sendScreenshareChatbotMessage(event)" class="flex gap-2">
-                    <input type="text" id="input-screenshare-chatbot-msg" placeholder="Ask me to rewrite in a different language, add error handling, etc..." class="flex-1 bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500 transition-all" required>
+                    <input type="text" id="input-screenshare-chatbot-msg" placeholder="Ask me to rewrite in a different language, add error handling, etc..." class="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-slate-800 dark:text-white text-sm focus:outline-none focus:border-indigo-500 transition-all" required>
                     <button type="submit" id="btn-screenshare-chatbot-send" class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-5 py-2.5 font-semibold text-sm transition-all hover:shadow-lg flex items-center gap-1.5">
                       <span>Send</span>
                       <i class="fa-solid fa-paper-plane text-xs"></i>
@@ -662,76 +675,76 @@
         <section id="panel-howitworks" class="hidden space-y-6">
           <div class="max-w-4xl mx-auto glass-panel rounded-2xl p-8 space-y-8">
             <div class="text-center space-y-2">
-              <h3 class="font-outfit font-bold text-2xl text-white flex items-center justify-center gap-3">
+              <h3 class="font-outfit font-bold text-2xl text-slate-900 dark:text-white flex items-center justify-center gap-3">
                 <i class="fa-solid fa-circle-question text-sky-400"></i>
                 How CodeRefine Works
               </h3>
-              <p class="text-sm text-slate-400 max-w-xl mx-auto leading-relaxed">
+              <p class="text-sm text-slate-600 dark:text-slate-400 max-w-xl mx-auto leading-relaxed">
                 CodeRefine is an advanced generative AI-powered code analysis and optimization engine. Here is a guide on how to utilize each core workspace module.
               </p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <!-- Feature 1 -->
-              <div class="bg-slate-950/60 border border-white/5 rounded-xl p-5 space-y-2.5 glass-card-hover">
+              <div class="bg-white/60 dark:bg-slate-950/60 border border-slate-200/50 dark:border-white/5 rounded-xl p-5 space-y-2.5 glass-card-hover">
                 <div class="flex items-center gap-3">
                   <div class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20 text-lg">
                     <i class="fa-solid fa-shield-halved"></i>
                   </div>
-                  <h4 class="font-outfit font-semibold text-white text-base">Code Review & Optimization</h4>
+                  <h4 class="font-outfit font-semibold text-slate-900 dark:text-white text-base">Code Review & Optimization</h4>
                 </div>
-                <p class="text-xs text-slate-400 leading-relaxed">
+                <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                   Paste your code, select the programming language, and run analysis. The AI reviews the code to locate logical bugs, scans for security vulnerabilities (creating custom danger/warning badges), and outputs a side-by-side refactored comparison.
                 </p>
               </div>
 
               <!-- Feature 2 -->
-              <div class="bg-slate-950/60 border border-white/5 rounded-xl p-5 space-y-2.5 glass-card-hover">
+              <div class="bg-white/60 dark:bg-slate-950/60 border border-slate-200/50 dark:border-white/5 rounded-xl p-5 space-y-2.5 glass-card-hover">
                 <div class="flex items-center gap-3">
                   <div class="w-10 h-10 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center border border-purple-500/20 text-lg">
                     <i class="fa-solid fa-chart-line"></i>
                   </div>
-                  <h4 class="font-outfit font-semibold text-white text-base">Complexity Analyzer</h4>
+                  <h4 class="font-outfit font-semibold text-slate-900 dark:text-white text-base">Complexity Analyzer</h4>
                 </div>
-                <p class="text-xs text-slate-400 leading-relaxed">
+                <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                   Analyze computational efficiency. Paste a loop or recursive algorithm to calculate Big-O time and space bounds (Best, Worst, Average cases). Generates recurrence tree step traceouts and simple analogies with "Explain Like I'm 5" (ELI5) enabled.
                 </p>
               </div>
 
               <!-- Feature 3 -->
-              <div class="bg-slate-950/60 border border-white/5 rounded-xl p-5 space-y-2.5 glass-card-hover">
+              <div class="bg-white/60 dark:bg-slate-950/60 border border-slate-200/50 dark:border-white/5 rounded-xl p-5 space-y-2.5 glass-card-hover">
                 <div class="flex items-center gap-3">
                   <div class="w-10 h-10 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center border border-rose-500/20 text-lg">
                     <i class="fa-solid fa-bug"></i>
                   </div>
-                  <h4 class="font-outfit font-semibold text-white text-base">Error Debugger</h4>
+                  <h4 class="font-outfit font-semibold text-slate-900 dark:text-white text-base">Error Debugger</h4>
                 </div>
-                <p class="text-xs text-slate-400 leading-relaxed">
+                <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                   Debug crash tracebacks. Paste the broken code alongside compiler/console stack traces to isolate the root cause, get fixed code proposals, and fetch custom-tailored search links for YouTube and GeeksforGeeks tutorial modules.
                 </p>
               </div>
 
               <!-- Feature 4 -->
-              <div class="bg-slate-950/60 border border-white/5 rounded-xl p-5 space-y-2.5 glass-card-hover">
+              <div class="bg-white/60 dark:bg-slate-950/60 border border-slate-200/50 dark:border-white/5 rounded-xl p-5 space-y-2.5 glass-card-hover">
                 <div class="flex items-center gap-3">
                   <div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20 text-lg">
                     <i class="fa-solid fa-desktop"></i>
                   </div>
-                  <h4 class="font-outfit font-semibold text-white text-base">Live Screen Sharing</h4>
+                  <h4 class="font-outfit font-semibold text-slate-900 dark:text-white text-base">Live Screen Sharing</h4>
                 </div>
-                <p class="text-xs text-slate-400 leading-relaxed">
+                <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                   Multimodal IDE diagnostics. Share your desktop, focus your IDE editor over the display feed, and capture a snapshot. Groq inspects visual squiggly error lines and compiler indicators in the frame to return target explanations and corrections.
                 </p>
               </div>
             </div>
 
             <!-- Architecture overview -->
-            <div class="bg-blue-500/5 border border-blue-500/10 rounded-xl p-5 space-y-2">
-              <h4 class="text-xs font-semibold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
+            <div class="bg-blue-50/50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/10 rounded-xl p-5 space-y-2">
+              <h4 class="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
                 <i class="fa-solid fa-key"></i>
                 Secure Keys & Persistent Sessions
               </h4>
-              <p class="text-xs text-slate-300 leading-relaxed">
+              <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                 CodeRefine stores your profile configurations and Groq API Keys directly in a secure local SQLite database file, meaning credentials and review histories persist securely across sessions without relying on insecure browser cookies.
               </p>
             </div>
@@ -744,27 +757,27 @@
 
 
   <!-- ================= PROFILE / GEMINI CONFIGURATION MODAL ================= -->
-  <div id="settings-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md px-4">
-    <div class="w-full max-w-md glass-panel rounded-2xl border border-white/10 shadow-2xl p-6 glow-indigo">
+  <div id="settings-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-100/70 dark:bg-slate-950/70 backdrop-blur-md px-4">
+    <div class="w-full max-w-md glass-panel rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl p-6 glow-indigo">
       <div class="flex items-center justify-between mb-6">
-        <h3 class="text-xl font-bold font-outfit text-white flex items-center gap-2">
+        <h3 class="text-xl font-bold font-outfit text-slate-900 dark:text-white flex items-center gap-2">
           <i class="fa-solid fa-user-gear text-indigo-400 text-base"></i>
           Profile & API Keys
         </h3>
-        <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white p-1 hover:bg-white/5 rounded-lg transition-all">
+        <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 hover:bg-white/5 rounded-lg transition-all">
           <i class="fa-solid fa-xmark text-lg"></i>
         </button>
       </div>
 
       <!-- Masked status info -->
-      <div class="mb-6 bg-slate-950/60 border border-white/5 rounded-xl p-4 space-y-3">
+      <div class="mb-6 bg-slate-100/50 dark:bg-slate-950/60 border border-slate-200 dark:border-white/5 rounded-xl p-4 space-y-3">
         <div class="flex items-center justify-between text-xs">
-          <span class="text-slate-500">Username:</span>
-          <span id="settings-username" class="font-semibold text-white">developer</span>
+          <span class="text-slate-600 dark:text-slate-500">Username:</span>
+          <span id="settings-username" class="font-semibold text-slate-800 dark:text-white">developer</span>
         </div>
         <div class="flex items-center justify-between text-xs">
-          <span class="text-slate-500">Active API Key:</span>
-          <span id="settings-key-status" class="font-mono text-indigo-400 font-semibold">Not Configured</span>
+          <span class="text-slate-600 dark:text-slate-500">Active API Key:</span>
+          <span id="settings-key-status" class="font-mono text-indigo-600 dark:text-indigo-400 font-semibold">Not Configured</span>
         </div>
       </div>
 
@@ -776,9 +789,9 @@
 
       <form id="settings-form" class="space-y-4" onsubmit="handleSettingsSubmit(event)">
         <div>
-          <label for="input-groq-key" class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Groq API Key (Optional)</label>
-          <input type="password" id="input-groq-key" class="w-full bg-slate-900 border border-white/10 rounded-xl py-3 px-4 text-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-mono" placeholder="gsk-...">
-          <p class="text-[10px] text-slate-500 mt-1.5 leading-relaxed">
+          <label for="input-groq-key" class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-2">Groq API Key (Optional)</label>
+          <input type="password" id="input-groq-key" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-800 dark:text-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-mono" placeholder="gsk-...">
+          <p class="text-[10px] text-slate-600 dark:text-slate-500 mt-1.5 leading-relaxed">
             API Keys are stored securely in SQLite database tied specifically to your login profile. Leave empty to use the shared server Groq API key automatically.
           </p>
         </div>

@@ -1,29 +1,57 @@
 /* Custom CSS for CodeRefine Modern Visuals */
 
-/* Root definitions for premium dark theme */
+/* Root definitions for premium light theme (Default) */
 :root {
+  --bg-primary: #f8fafc; /* slate-50 */
+  --bg-secondary: #ffffff; /* white */
+  --bg-tertiary: #f1f5f9; /* slate-100 */
+  
+  --text-primary: #0f172a; /* slate-900 */
+  --text-secondary: #334155; /* slate-700 */
+  --text-muted: #64748b; /* slate-500 */
+  --border-color: rgba(0, 0, 0, 0.08);
+  
+  --accent-glow: rgba(99, 102, 241, 0.08); /* Light Indigo glow */
+  --accent-border: rgba(99, 102, 241, 0.2);
+  --accent-color: #4f46e5; /* indigo-600 */
+}
+
+/* Root definitions for premium dark theme */
+.dark {
   --bg-primary: #0a0b10;
   --bg-secondary: #12131a;
   --bg-tertiary: #1a1c29;
   
+  --text-primary: #f8fafc; /* slate-50 */
+  --text-secondary: #cbd5e1; /* slate-300 */
+  --text-muted: #64748b; /* slate-500 */
+  --border-color: rgba(255, 255, 255, 0.08);
+  
   --accent-glow: rgba(99, 102, 241, 0.15); /* Indigo glow */
   --accent-border: rgba(99, 102, 241, 0.3);
-  --accent-color: #6366f1;
+  --accent-color: #6366f1; /* indigo-500 */
 }
 
 body {
   background-color: var(--bg-primary);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  color: #e2e8f0;
+  color: var(--text-primary);
   overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Glassmorphism Card Style */
 .glass-panel {
-  background: rgba(18, 19, 26, 0.7);
+  background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.dark .glass-panel {
+  background: rgba(18, 19, 26, 0.7);
 }
 
 .glass-card-hover {
@@ -36,7 +64,7 @@ body {
   box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.2);
 }
 
-/* Custom Webkit scrollbar matching the dark theme */
+/* Custom Webkit scrollbar matching themes */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -44,27 +72,49 @@ body {
 
 ::-webkit-scrollbar-track {
   background: var(--bg-primary);
+  transition: background-color 0.3s ease;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #27273a;
+  background: #cbd5e1;
   border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #27273a;
 }
 
 ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
   background: #3f3f5a;
 }
 
 /* Glow rings and neon borders */
 .glow-indigo {
+  box-shadow: 0 0 25px 0 rgba(99, 102, 241, 0.15);
+}
+
+.dark .glow-indigo {
   box-shadow: 0 0 25px 0 rgba(99, 102, 241, 0.25);
 }
 
 .glow-emerald {
+  box-shadow: 0 0 25px 0 rgba(16, 185, 129, 0.15);
+}
+
+.dark .glow-emerald {
   box-shadow: 0 0 25px 0 rgba(16, 185, 129, 0.25);
 }
 
 .glow-rose {
+  box-shadow: 0 0 25px 0 rgba(244, 63, 94, 0.15);
+}
+
+.dark .glow-rose {
   box-shadow: 0 0 25px 0 rgba(244, 63, 94, 0.25);
 }
 
@@ -113,28 +163,40 @@ pre code {
 }
 
 .diff-added {
-  background-color: rgba(16, 185, 129, 0.15) !important;
+  background-color: rgba(16, 185, 129, 0.08) !important;
   border-left: 3px solid #10b981;
 }
 
+.dark .diff-added {
+  background-color: rgba(16, 185, 129, 0.15) !important;
+}
+
 .diff-removed {
-  background-color: rgba(244, 63, 94, 0.15) !important;
+  background-color: rgba(244, 63, 94, 0.08) !important;
   border-left: 3px solid #f43f5e;
+}
+
+.dark .diff-removed {
+  background-color: rgba(244, 63, 94, 0.15) !important;
 }
 
 /* Interactive Tab Animation */
 .tab-active {
-  color: #fff;
-  border-bottom: 2px solid #6366f1;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--accent-color);
   background: linear-gradient(180deg, rgba(99, 102, 241, 0) 0%, rgba(99, 102, 241, 0.08) 100%);
 }
 
 .tab-inactive {
-  color: #94a3b8;
+  color: var(--text-secondary);
   border-bottom: 2px solid transparent;
 }
 
 .tab-inactive:hover {
-  color: #cbd5e1;
+  color: var(--text-primary);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.dark .tab-inactive:hover {
   background: rgba(255, 255, 255, 0.02);
 }

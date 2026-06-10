@@ -10,6 +10,7 @@ let chatHistory = [];
 let codeUndoStack = [];
 let codeRedoStack = [];
 let originalBaseCode = "";
+let activeReviewId = null;
 
 // Chatbot and Undo/Redo/Restore State (Screen Share)
 let screenshareChatHistory = [];
@@ -77,16 +78,16 @@ function setupAuthTabToggles() {
 
   loginTabBtn.addEventListener("click", () => {
     currentAuthTab = "login";
-    loginTabBtn.className = "flex-1 pb-3 text-center font-medium border-b-2 border-indigo-500 text-white transition-all";
-    registerTabBtn.className = "flex-1 pb-3 text-center font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all";
+    loginTabBtn.className = "flex-1 pb-3 text-center font-medium border-b-2 border-indigo-500 text-slate-900 dark:text-white transition-all";
+    registerTabBtn.className = "flex-1 pb-3 text-center font-medium border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-all";
     authSubmitBtn.querySelector("span").textContent = "Sign In";
     clearAuthBanners();
   });
 
   registerTabBtn.addEventListener("click", () => {
     currentAuthTab = "register";
-    registerTabBtn.className = "flex-1 pb-3 text-center font-medium border-b-2 border-indigo-500 text-white transition-all";
-    loginTabBtn.className = "flex-1 pb-3 text-center font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all";
+    registerTabBtn.className = "flex-1 pb-3 text-center font-medium border-b-2 border-indigo-500 text-slate-900 dark:text-white transition-all";
+    loginTabBtn.className = "flex-1 pb-3 text-center font-medium border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-all";
     authSubmitBtn.querySelector("span").textContent = "Register Account";
     clearAuthBanners();
   });
@@ -186,6 +187,9 @@ async function fetchProfile() {
 function logout() {
   localStorage.removeItem("token");
   currentProfile = null;
+  activeReviewId = null;
+  chatHistory = [];
+  
   // Reset fields
   document.getElementById("textarea-review-code").value = "";
   document.getElementById("textarea-complexity-code").value = "";
@@ -224,12 +228,12 @@ async function loadHistory() {
       });
       
       return `
-        <div onclick='selectHistoryItem(${JSON.stringify(item).replace(/'/g, "&apos;")})' class="glass-panel hover:bg-white/5 border border-white/5 hover:border-white/10 rounded-xl p-3 flex flex-col gap-1 cursor-pointer transition-all relative group">
+        <div onclick='selectHistoryItem(${JSON.stringify(item).replace(/'/g, "&apos;")})' class="glass-panel hover:bg-slate-100 dark:hover:bg-white/5 border border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10 rounded-xl p-3 flex flex-col gap-1 cursor-pointer transition-all relative group">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold text-white truncate pr-6">${item.title}</span>
-            <span class="text-[10px] text-slate-500 font-mono">${item.language}</span>
+            <span class="text-xs font-semibold text-slate-900 dark:text-white truncate pr-6">${item.title}</span>
+            <span class="text-[10px] text-slate-600 dark:text-slate-500 font-mono">${item.language}</span>
           </div>
-          <div class="flex items-center justify-between mt-1 text-[10px] text-slate-500">
+          <div class="flex items-center justify-between mt-1 text-[10px] text-slate-600 dark:text-slate-500">
             <span>${dateStr}</span>
             <button onclick="deleteHistoryItem(${item.id}, event)" class="opacity-0 group-hover:opacity-100 hover:text-rose-400 p-1 rounded transition-all" title="Delete Review">
               <i class="fa-solid fa-trash-can"></i>
@@ -269,16 +273,34 @@ async function deleteHistoryItem(id, event) {
 function selectHistoryItem(item) {
   switchTab("review");
   
+  activeReviewId = item.id;
+  
   // Pre-fill input
   document.getElementById("textarea-review-code").value = item.original_code;
   document.getElementById("select-review-lang").value = item.language;
   
-  // Set original base code and reset chatbot
+  // Set original base code and reset stacks
   originalBaseCode = item.original_code;
-  resetChatbot();
+  codeUndoStack = [];
+  codeRedoStack = [];
+  updateUndoRedoRestoreButtons();
   
   // Populate result view directly
   displayCodeReviewResults(item.review_json);
+  
+  // Restore chatbot with historical messages
+  chatHistory = item.chat_history || [];
+  const chatbotBox = document.getElementById("chatbot-box");
+  if (chatbotBox) {
+    chatbotBox.innerHTML = `
+      <div class="bg-indigo-500/10 border border-indigo-500/20 text-indigo-200 text-xs p-3 rounded-xl max-w-[85%] self-start">
+        Hello! I am your Code Review assistant. Ask me to modify, update, improve, or explain the uploaded code above.
+      </div>
+    `;
+    chatHistory.forEach(msg => {
+      renderChatbotBubble(msg.role, msg.text);
+    });
+  }
 }
 
 // ================= SETTINGS AND KEYS =================
@@ -409,6 +431,7 @@ async function runCodeReview() {
     // Set baseline and reset chatbot session
     originalBaseCode = code;
     resetChatbot();
+    activeReviewId = data.id || null;
 
     displayCodeReviewResults(data);
     loadHistory(); // Reload SQLite history logs
@@ -444,13 +467,13 @@ function displayCodeReviewResults(review) {
   const badgeContainer = document.getElementById("security-badge-container");
   if (review.security_badges && review.security_badges.length > 0) {
     badgeContainer.innerHTML = review.security_badges.map(badge => {
-      let colorClass = "bg-indigo-500/10 border-indigo-500/25 text-indigo-400";
+      let colorClass = "bg-indigo-50 dark:bg-indigo-500/10 border-indigo-100 dark:border-indigo-500/25 text-indigo-600 dark:text-indigo-400";
       if (badge.status === "danger") {
-        colorClass = "bg-rose-500/10 border-rose-500/25 text-rose-400";
+        colorClass = "bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/25 text-rose-600 dark:text-rose-400";
       } else if (badge.status === "warning") {
-        colorClass = "bg-amber-500/10 border-amber-500/25 text-amber-400";
+        colorClass = "bg-amber-50 dark:bg-amber-500/10 border-amber-100 dark:border-amber-500/25 text-amber-700 dark:text-amber-400";
       } else if (badge.status === "success") {
-        colorClass = "bg-emerald-500/10 border-emerald-500/25 text-emerald-400";
+        colorClass = "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/25 text-emerald-600 dark:text-emerald-400";
       }
       return `
         <span class="text-[10px] font-semibold ${colorClass} border px-2.5 py-1 rounded-full uppercase tracking-wider" title="${escapeHtml(badge.description)}">
@@ -468,19 +491,19 @@ function displayCodeReviewResults(review) {
   if (review.bugs && review.bugs.length > 0) {
     bugsContainer.classList.remove("hidden");
     bugsList.innerHTML = review.bugs.map(bug => {
-      let badgeColor = "bg-slate-500/10 text-slate-400";
-      if (bug.severity === "High") badgeColor = "bg-rose-500/10 text-rose-400 border border-rose-500/20";
-      if (bug.severity === "Medium") badgeColor = "bg-amber-500/10 text-amber-400 border border-amber-500/20";
-      if (bug.severity === "Low") badgeColor = "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20";
+      let badgeColor = "bg-slate-100 dark:bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-500/20";
+      if (bug.severity === "High") badgeColor = "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-500/20";
+      if (bug.severity === "Medium") badgeColor = "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20";
+      if (bug.severity === "Low") badgeColor = "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20";
       
       return `
-        <div class="bg-slate-950/60 rounded-xl p-3 border border-white/5 space-y-1.5">
+        <div class="bg-slate-50 dark:bg-slate-950/60 rounded-xl p-3 border border-slate-200 dark:border-white/5 space-y-1.5">
           <div class="flex items-center gap-2">
             <span class="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${badgeColor}">${bug.severity}</span>
-            <span class="text-xs font-semibold text-white">Line ${bug.line_number}</span>
+            <span class="text-xs font-semibold text-slate-900 dark:text-white">Line ${bug.line_number}</span>
           </div>
-          <p class="text-xs text-slate-300 leading-relaxed">${escapeHtml(bug.description)}</p>
-          <div class="text-[10px] text-indigo-400 bg-indigo-400/5 px-2.5 py-1 rounded border border-indigo-400/10">
+          <p class="text-xs text-slate-750 dark:text-slate-300 leading-relaxed">${escapeHtml(bug.description)}</p>
+          <div class="text-[10px] text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-400/5 px-2.5 py-1 rounded border border-indigo-200/50 dark:border-indigo-400/10">
             <span class="font-bold">Fix Suggestion:</span> ${escapeHtml(bug.suggestion)}
           </div>
         </div>
@@ -607,17 +630,17 @@ async function runErrorExplain() {
     const resourcesList = document.getElementById("error-resources-list");
     if (data.resources && data.resources.length > 0) {
       resourcesList.innerHTML = data.resources.map(res => `
-        <div class="bg-slate-950/80 rounded-xl p-4 border border-white/5 space-y-3 glass-panel">
-          <div class="text-xs font-semibold text-white flex items-center gap-1.5">
-            <i class="fa-solid fa-graduation-cap text-indigo-400"></i>
+        <div class="rounded-xl p-4 glass-panel space-y-3">
+          <div class="text-xs font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+            <i class="fa-solid fa-graduation-cap text-indigo-600 dark:text-indigo-400"></i>
             <span>${escapeHtml(res.topic)}</span>
           </div>
           <div class="flex items-center gap-2">
-            <a href="${res.youtube}" target="_blank" class="flex-1 text-center bg-rose-600/10 hover:bg-rose-600/20 text-rose-400 border border-rose-500/20 text-[10px] font-semibold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5">
+            <a href="${res.youtube}" target="_blank" class="flex-1 text-center bg-rose-600/10 hover:bg-rose-600/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20 text-[10px] font-semibold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5">
               <i class="fa-brands fa-youtube"></i>
               YouTube Tutorials
             </a>
-            <a href="${res.geeksforgeeks}" target="_blank" class="flex-1 text-center bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5">
+            <a href="${res.geeksforgeeks}" target="_blank" class="flex-1 text-center bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 text-[10px] font-semibold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5">
               <i class="fa-solid fa-book-open"></i>
               GeeksforGeeks
             </a>
@@ -832,6 +855,40 @@ function resetChatbot() {
   updateUndoRedoRestoreButtons();
 }
 
+async function startNewChat() {
+  if (!activeReviewId) {
+    alert("No active code review session to start a new chat on. Please run an optimization first.");
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/review/copy/${activeReviewId}`, {
+      method: "POST",
+      headers: getAuthHeaders()
+    });
+    
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({ detail: "Failed to start a new chat." }));
+      alert(errData.detail);
+      return;
+    }
+    
+    const newReview = await response.json();
+    
+    // Set the new review ID as active
+    activeReviewId = newReview.id;
+    
+    // Clear chat history
+    resetChatbot();
+    
+    // Reload history panel so the new copy is displayed in the sidebar
+    await loadHistory();
+    
+  } catch (err) {
+    alert("Network error starting new chat.");
+  }
+}
+
 function updateUndoRedoRestoreButtons() {
   const btnUndo = document.getElementById("btn-chatbot-undo");
   const btnRedo = document.getElementById("btn-chatbot-redo");
@@ -903,7 +960,8 @@ async function sendChatbotMessage(event) {
       body: JSON.stringify({
         code: code,
         message: message,
-        history: chatHistory
+        history: chatHistory,
+        review_id: activeReviewId
       })
     });
     
@@ -941,7 +999,7 @@ function renderChatbotBubble(sender, text) {
   if (!chatbotBox) return;
   
   const isUser = sender === "user";
-  const alignClass = isUser ? "self-end bg-indigo-600 text-white" : "self-start bg-slate-900 border border-white/5 text-slate-200";
+  const alignClass = isUser ? "self-end bg-indigo-600 text-white" : "self-start bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/5 text-slate-800 dark:text-slate-200";
   
   // Parse markdown code blocks in bot response
   let bubbleContent = "";
@@ -967,17 +1025,17 @@ function renderChatbotBubble(sender, text) {
       suggestedCodeSuggestions[codeId] = code;
       
       bubbleContent += `
-        <div class="my-3 border border-indigo-500/20 rounded-xl overflow-hidden bg-slate-950">
-          <div class="flex items-center justify-between px-3 py-1.5 bg-slate-900 border-b border-indigo-500/10 text-[10px] text-slate-400">
+        <div class="my-3 border border-indigo-200 dark:border-indigo-500/20 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-950">
+          <div class="flex items-center justify-between px-3 py-1.5 bg-slate-100 dark:bg-slate-900 border-b border-indigo-200 dark:border-indigo-500/10 text-[10px] text-slate-600 dark:text-slate-400">
             <span class="font-mono uppercase">${lang}</span>
-            <span class="font-semibold text-indigo-400">Suggested Code</span>
+            <span class="font-semibold text-indigo-600 dark:text-indigo-400">Suggested Code</span>
           </div>
-          <pre class="p-3 text-[11px] font-mono overflow-x-auto text-indigo-200">${escapeHtml(code)}</pre>
-          <div id="actions-${codeId}" class="flex border-t border-indigo-500/10 text-xs">
-            <button type="button" onclick="applyChatbotCode('${codeId}')" class="flex-1 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-semibold border-r border-indigo-500/10 transition-all flex items-center justify-center gap-1">
+          <pre class="p-3 text-[11px] font-mono overflow-x-auto text-indigo-950 dark:text-indigo-200">${escapeHtml(code)}</pre>
+          <div id="actions-${codeId}" class="flex border-t border-indigo-200 dark:border-indigo-500/10 text-xs">
+            <button type="button" onclick="applyChatbotCode('${codeId}')" class="flex-1 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-semibold border-r border-indigo-200 dark:border-indigo-500/10 transition-all flex items-center justify-center gap-1">
               <i class="fa-solid fa-check"></i> Accept Changes
             </button>
-            <button type="button" onclick="rejectChatbotCode('${codeId}')" class="flex-1 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-semibold transition-all flex items-center justify-center gap-1">
+            <button type="button" onclick="rejectChatbotCode('${codeId}')" class="flex-1 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-semibold transition-all flex items-center justify-center gap-1">
               <i class="fa-solid fa-xmark"></i> Reject
             </button>
           </div>
@@ -1007,7 +1065,7 @@ function formatBotText(text) {
   // Simple markdown-to-html helper for inline code and linebreaks
   return escapeHtml(text)
     .replace(/\n/g, "<br>")
-    .replace(/`([^`]+)`/g, '<code class="bg-slate-950 px-1 py-0.5 rounded text-indigo-300 font-mono text-[10px]">$1</code>');
+    .replace(/`([^`]+)`/g, '<code class="bg-slate-200 dark:bg-slate-950 px-1 py-0.5 rounded text-indigo-700 dark:text-indigo-300 font-mono text-[10px]">$1</code>');
 }
 
 function applyChatbotCode(codeId) {
@@ -1226,7 +1284,7 @@ function renderScreenshareChatbotBubble(sender, text) {
   if (!chatbotBox) return;
   
   const isUser = sender === "user";
-  const alignClass = isUser ? "self-end bg-emerald-600 text-white" : "self-start bg-slate-900 border border-white/5 text-slate-200";
+  const alignClass = isUser ? "self-end bg-emerald-600 text-white" : "self-start bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/5 text-slate-800 dark:text-slate-200";
   
   // Parse markdown code blocks in bot response
   let bubbleContent = "";
@@ -1252,17 +1310,17 @@ function renderScreenshareChatbotBubble(sender, text) {
       suggestedScreenshareCodeSuggestions[codeId] = code;
       
       bubbleContent += `
-        <div class="my-3 border border-emerald-500/20 rounded-xl overflow-hidden bg-slate-950">
-          <div class="flex items-center justify-between px-3 py-1.5 bg-slate-900 border-b border-emerald-500/10 text-[10px] text-slate-400">
+        <div class="my-3 border border-emerald-200 dark:border-emerald-500/20 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-950">
+          <div class="flex items-center justify-between px-3 py-1.5 bg-slate-100 dark:bg-slate-900 border-b border-emerald-200 dark:border-emerald-500/10 text-[10px] text-slate-600 dark:text-slate-400">
             <span class="font-mono uppercase">${lang}</span>
-            <span class="font-semibold text-emerald-400">Suggested Code</span>
+            <span class="font-semibold text-emerald-600 dark:text-emerald-400">Suggested Code</span>
           </div>
-          <pre class="p-3 text-[11px] font-mono overflow-x-auto text-indigo-200">${escapeHtml(code)}</pre>
-          <div id="actions-${codeId}" class="flex border-t border-emerald-500/10 text-xs">
-            <button type="button" onclick="applyScreenshareChatbotCode('${codeId}')" class="flex-1 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-semibold border-r border-emerald-500/10 transition-all flex items-center justify-center gap-1">
+          <pre class="p-3 text-[11px] font-mono overflow-x-auto text-emerald-950 dark:text-indigo-200">${escapeHtml(code)}</pre>
+          <div id="actions-${codeId}" class="flex border-t border-emerald-200 dark:border-emerald-500/10 text-xs">
+            <button type="button" onclick="applyScreenshareChatbotCode('${codeId}')" class="flex-1 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-semibold border-r border-emerald-200 dark:border-emerald-500/10 transition-all flex items-center justify-center gap-1">
               <i class="fa-solid fa-check"></i> Accept Changes
             </button>
-            <button type="button" onclick="rejectScreenshareChatbotCode('${codeId}')" class="flex-1 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-semibold transition-all flex items-center justify-center gap-1">
+            <button type="button" onclick="rejectScreenshareChatbotCode('${codeId}')" class="flex-1 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-semibold transition-all flex items-center justify-center gap-1">
               <i class="fa-solid fa-xmark"></i> Reject
             </button>
           </div>
@@ -1374,4 +1432,15 @@ function restoreOriginalScreenshareCode() {
   codeContainer.textContent = originalScreenshareBaseCode;
   
   updateScreenshareUndoRedoRestoreButtons();
+}
+
+function toggleTheme() {
+  const isDark = document.documentElement.classList.contains("dark");
+  if (isDark) {
+    document.documentElement.classList.remove("dark");
+    localStorage.setItem("theme", "light");
+  } else {
+    document.documentElement.classList.add("dark");
+    localStorage.setItem("theme", "dark");
+  }
 }
