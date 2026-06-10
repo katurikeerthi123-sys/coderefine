@@ -132,12 +132,13 @@ def authenticate_user(token: str) -> Optional[Dict[str, Any]]:
         
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT id, username, gemini_key FROM users WHERE username = ?", (username,))
+        cursor.execute("SELECT id, username, gemini_key, groq_key FROM users WHERE username = ?", (username,))
         user = cursor.fetchone()
         if user:
             return {
                 "id": user["id"],
                 "username": user["username"],
-                "gemini_key": user["gemini_key"]
+                "gemini_key": user["gemini_key"],
+                "groq_key": user["groq_key"]
             }
     return None

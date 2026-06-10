@@ -9,10 +9,37 @@ from typing import Dict, Any, Optional
 from app.config import BASE_DIR, JWT_SECRET_KEY
 from app.database import get_db, init_db
 from app.auth_service import hash_password, verify_password, create_access_token, authenticate_user
-from app.services import gemini_service, utils
+from app.services import groq_service, utils
 
 # Ensure DB initialized on startup
 init_db()
+
+def is_valid_source_code(text: str) -> bool:
+    """
+    Validates if the input text looks like source code.
+    Uses keywords and syntax tokens checks to filter plain conversation.
+    """
+    text_stripped = text.strip()
+    if not text_stripped:
+        return False
+        
+    keywords = {
+        "def", "function", "fn", "import", "from", "include", "public", "class", 
+        "struct", "void", "return", "if", "for", "while", "else", "elif", "except", 
+        "try", "catch", "throw", "let", "const", "var", "int", "float", "char", "double",
+        "println", "printf", "cout", "print", "console", "using", "namespace", "std",
+        "System", "out"
+    }
+    
+    # Check for programming keywords
+    words = re.findall(r'\b\w+\b', text_stripped)
+    matching_keywords = [w for w in words if w in keywords]
+    
+    # Check common syntax symbols
+    syntax_tokens = ['{', '}', ';', '(', ')', '[', ']', '=', '+', '-', '*', '/', '<', '>', ':', '"', "'"]
+    syntax_count = sum(text_stripped.count(t) for t in syntax_tokens)
+    
+    return len(matching_keywords) >= 1 or syntax_count >= 1
 
 class CodeRefineRequestHandler(BaseHTTPRequestHandler):
     """
@@ -134,7 +161,7 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                     return
                     
                 # Mask key
-                raw_key = user.get("gemini_key")
+                raw_key = user.get("groq_key")
                 masked_key = ""
                 if raw_key:
                     masked_key = f"sk-...{raw_key[-4:]}" if len(raw_key) > 4 else "sk-..."
@@ -142,8 +169,8 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                 self.send_json({
                     "id": user["id"],
                     "username": user["username"],
-                    "has_gemini_key": bool(raw_key),
-                    "gemini_key_masked": masked_key
+                    "has_groq_key": bool(raw_key),
+                    "groq_key_masked": masked_key
                 })
                 return
 
@@ -250,15 +277,11 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                     self.send_error_json("Could not validate credentials", 401)
                     return
                     
-                key_input = data.get("gemini_key", "").strip()
-                if not key_input:
-                    self.send_error_json("API key cannot be empty", 400)
-                    return
-                    
+                key_input = data.get("groq_key", "").strip()
                 with get_db() as conn:
                     cursor = conn.cursor()
-                    cursor.execute("UPDATE users SET gemini_key = ? WHERE id = ?", (key_input, user["id"]))
-                self.send_json({"message": "Gemini API Key saved successfully"})
+                    cursor.execute("UPDATE users SET groq_key = ? WHERE id = ?", (key_input if key_input else None, user["id"]))
+                self.send_json({"message": "Groq API Key saved successfully"})
                 return
 
             # POST /api/review
@@ -275,11 +298,15 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                     self.send_error_json("Code cannot be empty", 400)
                     return
                     
+                if not is_valid_source_code(code):
+                    self.send_error_json("This is not code. Please enter valid source code.", 400)
+                    return
+                    
                 try:
-                    review_result = gemini_service.review_code(
+                    review_result = groq_service.review_code(
                         code=code,
                         language=language,
-                        api_key=user["gemini_key"]
+                        api_key=user.get("groq_key")
                     )
                     
                     # Store in database
@@ -319,12 +346,16 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                     self.send_error_json("Code cannot be empty", 400)
                     return
                     
+                if not is_valid_source_code(code):
+                    self.send_error_json("This is not code. Please enter valid source code.", 400)
+                    return
+                    
                 try:
-                    analysis = gemini_service.analyze_complexity(
+                    analysis = groq_service.analyze_complexity(
                         code=code,
                         language=language,
                         eli5=eli5,
-                        api_key=user["gemini_key"]
+                        api_key=user.get("groq_key")
                     )
                     self.send_json(analysis)
                 except Exception as e:
@@ -346,12 +377,16 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                     self.send_error_json("Code or logs must be provided", 400)
                     return
                     
+                if code.strip() and not is_valid_source_code(code):
+                    self.send_error_json("This is not code. Please enter valid source code.", 400)
+                    return
+                    
                 try:
-                    explanation = gemini_service.explain_error(
+                    explanation = groq_service.explain_error(
                         code=code,
                         error_logs=logs,
                         eli5=eli5,
-                        api_key=user["gemini_key"]
+                        api_key=user.get("groq_key")
                     )
                     
                     # Add links
@@ -389,12 +424,46 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                     mime_type = header.split(";")[0].replace("data:", "")
                     img_bytes = base64.b64decode(base64_str)
                     
-                    analysis = gemini_service.analyze_screen_capture(
+                    analysis = groq_service.analyze_screen_capture(
                         image_bytes=img_bytes,
                         mime_type=mime_type,
-                        api_key=user["gemini_key"]
+                        api_key=user.get("groq_key")
                     )
+                    
+                    # Validate that the OCR/screenshot extracts valid code
+                    original_code = analysis.get("original_code_snippet", "")
+                    if not is_valid_source_code(original_code):
+                        self.send_error_json("This is not code. Please enter valid source code.", 400)
+                        return
+                        
                     self.send_json(analysis)
+                except Exception as e:
+                    self.send_error_json(str(e), 500)
+                return
+
+            # POST /api/chat
+            if path == "/api/chat":
+                user = self.get_authenticated_user()
+                if not user:
+                    self.send_error_json("Could not validate credentials", 401)
+                    return
+                    
+                code = data.get("code", "")
+                message = data.get("message", "")
+                history = data.get("history", [])
+                
+                if not is_valid_source_code(code):
+                    self.send_error_json("This is not code. Please enter valid source code.", 400)
+                    return
+                    
+                try:
+                    response_text = groq_service.chat_about_code(
+                        code=code,
+                        message=message,
+                        history=history,
+                        api_key=user.get("groq_key")
+                    )
+                    self.send_json({"text": response_text})
                 except Exception as e:
                     self.send_error_json(str(e), 500)
                 return

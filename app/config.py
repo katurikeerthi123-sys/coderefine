@@ -33,8 +33,10 @@ DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR}/app.db")
 # Security configuration
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "coderefine-secret-key-super-secure-12345!")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "5256000"))  # 10 years persistence
 
-# Default Gemini configuration
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-DEFAULT_GEMINI_MODEL = os.getenv("DEFAULT_GEMINI_MODEL", "gemini-2.5-flash")
+# Default Groq configuration
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+DEFAULT_GROQ_TEXT_MODEL = os.getenv("DEFAULT_GROQ_TEXT_MODEL", "llama-3.3-70b-versatile")
+DEFAULT_GROQ_VISION_MODEL = os.getenv("DEFAULT_GROQ_VISION_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
+

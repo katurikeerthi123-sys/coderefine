@@ -42,9 +42,19 @@ def init_db():
             username TEXT UNIQUE NOT NULL,
             hashed_password TEXT NOT NULL,
             gemini_key TEXT,
+            groq_key TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         """)
+        
+        # Add groq_key column to users table if it does not exist yet
+        try:
+            cursor.execute("SELECT groq_key FROM users LIMIT 1;")
+        except sqlite3.OperationalError:
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN groq_key TEXT;")
+            except Exception as e:
+                print(f"Warning: Failed to add groq_key column: {str(e)}")
         
         # Create reviews table
         cursor.execute("""

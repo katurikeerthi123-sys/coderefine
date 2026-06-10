@@ -5,6 +5,18 @@ let currentAuthTab = "login";
 let screenStream = null;
 let currentProfile = null;
 
+// Chatbot and Undo/Redo/Restore State (Code Review)
+let chatHistory = [];
+let codeUndoStack = [];
+let codeRedoStack = [];
+let originalBaseCode = "";
+
+// Chatbot and Undo/Redo/Restore State (Screen Share)
+let screenshareChatHistory = [];
+let screenshareUndoStack = [];
+let screenshareRedoStack = [];
+let originalScreenshareBaseCode = "";
+
 // Base API configuration
 const API_URL = ""; // Relative paths since frontend is served by FastAPI
 
@@ -21,7 +33,20 @@ function getAuthHeaders() {
 document.addEventListener("DOMContentLoaded", () => {
   checkSession();
   setupAuthTabToggles();
+  setupCodeReviewListeners();
 });
+
+function setupCodeReviewListeners() {
+  const textarea = document.getElementById("textarea-review-code");
+  if (textarea) {
+    textarea.addEventListener("input", () => {
+      // Clear stacks on manual edit
+      codeUndoStack = [];
+      codeRedoStack = [];
+      updateUndoRedoRestoreButtons();
+    });
+  }
+}
 
 function checkSession() {
   const token = localStorage.getItem("token");
@@ -144,14 +169,14 @@ async function fetchProfile() {
     document.getElementById("settings-username").textContent = data.username;
     
     const keyStatusEl = document.getElementById("settings-key-status");
-    if (data.has_gemini_key) {
-      keyStatusEl.textContent = `Configured (${data.gemini_key_masked})`;
+    if (data.has_groq_key) {
+      keyStatusEl.textContent = `Configured (${data.groq_key_masked})`;
       keyStatusEl.className = "font-mono text-emerald-400 font-semibold";
-      document.getElementById("input-gemini-key").placeholder = "••••••••••••••••";
+      document.getElementById("input-groq-key").placeholder = "••••••••••••••••";
     } else {
       keyStatusEl.textContent = "Not Configured (Using System Default)";
       keyStatusEl.className = "font-mono text-slate-500 font-semibold";
-      document.getElementById("input-gemini-key").placeholder = "AIzaSy...";
+      document.getElementById("input-groq-key").placeholder = "gsk-...";
     }
   } catch (err) {
     console.error("Failed to fetch user profile:", err);
@@ -248,6 +273,10 @@ function selectHistoryItem(item) {
   document.getElementById("textarea-review-code").value = item.original_code;
   document.getElementById("select-review-lang").value = item.language;
   
+  // Set original base code and reset chatbot
+  originalBaseCode = item.original_code;
+  resetChatbot();
+  
   // Populate result view directly
   displayCodeReviewResults(item.review_json);
 }
@@ -266,30 +295,23 @@ function closeSettingsModal() {
 
 async function handleSettingsSubmit(event) {
   event.preventDefault();
-  const keyInput = document.getElementById("input-gemini-key").value.trim();
+  const keyInput = document.getElementById("input-groq-key").value.trim();
   const banner = document.getElementById("settings-message-banner");
   const icon = document.getElementById("settings-message-icon");
   const text = document.getElementById("settings-message-text");
-
-  if (!keyInput) {
-    banner.className = "mb-4 p-3 rounded-lg text-xs flex items-center gap-2 bg-rose-500/10 border border-rose-500/20 text-rose-400";
-    text.textContent = "Please enter a valid key.";
-    banner.classList.remove("hidden");
-    return;
-  }
 
   try {
     const response = await fetch("/api/auth/settings", {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ gemini_key: keyInput })
+      body: JSON.stringify({ groq_key: keyInput })
     });
 
     if (response.ok) {
       banner.className = "mb-4 p-3 rounded-lg text-xs flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400";
-      text.textContent = "Gemini API Key updated successfully!";
+      text.textContent = keyInput ? "Groq API Key updated successfully!" : "Groq API Key cleared. Using shared server key.";
       banner.classList.remove("hidden");
-      document.getElementById("input-gemini-key").value = "";
+      document.getElementById("input-groq-key").value = "";
       
       // Refresh configuration
       fetchProfile();
@@ -358,6 +380,11 @@ async function runCodeReview() {
     return;
   }
 
+  if (!isValidSourceCode(code)) {
+    alert("This is not code. Please enter valid source code.");
+    return;
+  }
+
   // Set UI States
   document.getElementById("review-empty-state").classList.add("hidden");
   document.getElementById("review-result-container").classList.add("hidden");
@@ -374,10 +401,14 @@ async function runCodeReview() {
 
     if (!response.ok) {
       const errData = await response.json().catch(() => ({ detail: "Analysis failed. Verify your API Key." }));
-      alert(`Error: ${errData.detail}`);
+      alert(errData.detail);
       resetReviewUI();
       return;
     }
+
+    // Set baseline and reset chatbot session
+    originalBaseCode = code;
+    resetChatbot();
 
     displayCodeReviewResults(data);
     loadHistory(); // Reload SQLite history logs
@@ -480,6 +511,11 @@ async function runComplexityAnalysis() {
     return;
   }
 
+  if (!isValidSourceCode(code)) {
+    alert("This is not code. Please enter valid source code.");
+    return;
+  }
+
   document.getElementById("complexity-empty-state").classList.add("hidden");
   document.getElementById("complexity-result-container").classList.add("hidden");
   document.getElementById("complexity-loading").classList.remove("hidden");
@@ -493,7 +529,7 @@ async function runComplexityAnalysis() {
 
     if (!response.ok) {
       const errData = await response.json().catch(() => ({ detail: "Verify API Key settings." }));
-      alert(`Complexity analysis failed: ${errData.detail}`);
+      alert(errData.detail);
       resetComplexityUI();
       return;
     }
@@ -535,6 +571,11 @@ async function runErrorExplain() {
     return;
   }
 
+  if (code.trim() && !isValidSourceCode(code)) {
+    alert("This is not code. Please enter valid source code.");
+    return;
+  }
+
   document.getElementById("error-empty-state").classList.add("hidden");
   document.getElementById("error-result-container").classList.add("hidden");
   document.getElementById("error-loading").classList.remove("hidden");
@@ -548,7 +589,7 @@ async function runErrorExplain() {
 
     if (!response.ok) {
       const errData = await response.json().catch(() => ({ detail: "Check console error outputs." }));
-      alert(`Debugging diagnosis failed: ${errData.detail}`);
+      alert(errData.detail);
       resetErrorUI();
       return;
     }
@@ -696,7 +737,7 @@ async function captureAndAnalyzeFrame() {
 
     if (!response.ok) {
       const errData = await response.json().catch(() => ({ detail: "Ensure key parameters are set." }));
-      alert(`Screen vision check failed: ${errData.detail}`);
+      alert(errData.detail);
       resetScreenshareUI();
       return;
     }
@@ -711,6 +752,10 @@ async function captureAndAnalyzeFrame() {
     document.getElementById("screenshare-explanation").textContent = data.explanation || "";
     document.getElementById("screenshare-original-code").textContent = data.original_code_snippet || "";
     document.getElementById("screenshare-fixed-code").textContent = data.fixed_code_snippet || "";
+
+    // Set baseline and reset screenshare chatbot
+    originalScreenshareBaseCode = data.fixed_code_snippet || "";
+    resetScreenshareChatbot();
 
   } catch (err) {
     alert("Network vision exception.");
@@ -738,4 +783,595 @@ function escapeHtml(text) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+// ================= SOURCE CODE VALIDATION =================
+function isValidSourceCode(text) {
+  const textStripped = text.trim();
+  if (!textStripped) return false;
+  
+  const keywords = new Set([
+    "def", "function", "fn", "import", "from", "include", "public", "class", 
+    "struct", "void", "return", "if", "for", "while", "else", "elif", "except", 
+    "try", "catch", "throw", "let", "const", "var", "int", "float", "char", "double",
+    "println", "printf", "cout", "print", "console", "using", "namespace", "std",
+    "System", "out"
+  ]);
+  
+  // Find words
+  const words = textStripped.match(/\b\w+\b/g) || [];
+  const hasKeyword = words.some(w => keywords.has(w));
+  
+  // Check common syntax symbols
+  const syntaxTokens = ['{', '}', ';', '(', ')', '[', ']', '=', '+', '-', '*', '/', '<', '>', ':', '"', "'"];
+  let syntaxCount = 0;
+  for (const char of textStripped) {
+    if (syntaxTokens.includes(char)) {
+      syntaxCount++;
+    }
+  }
+  
+  return hasKeyword || syntaxCount >= 1;
+}
+
+// ================= CODE REVIEW CHATBOT AND UNDO/REDO/RESTORE =================
+
+function resetChatbot() {
+  chatHistory = [];
+  codeUndoStack = [];
+  codeRedoStack = [];
+  
+  const chatbotBox = document.getElementById("chatbot-box");
+  if (chatbotBox) {
+    chatbotBox.innerHTML = `
+      <div class="bg-indigo-500/10 border border-indigo-500/20 text-indigo-200 text-xs p-3 rounded-xl max-w-[85%] self-start">
+        Hello! I am your Code Review assistant. Ask me to modify, update, improve, or explain the uploaded code above.
+      </div>
+    `;
+  }
+  updateUndoRedoRestoreButtons();
+}
+
+function updateUndoRedoRestoreButtons() {
+  const btnUndo = document.getElementById("btn-chatbot-undo");
+  const btnRedo = document.getElementById("btn-chatbot-redo");
+  const btnRestore = document.getElementById("btn-chatbot-restore");
+  const textarea = document.getElementById("textarea-review-code");
+  
+  if (btnUndo) {
+    if (codeUndoStack.length > 0) {
+      btnUndo.classList.remove("hidden");
+    } else {
+      btnUndo.classList.add("hidden");
+    }
+  }
+  
+  if (btnRedo) {
+    if (codeRedoStack.length > 0) {
+      btnRedo.classList.remove("hidden");
+    } else {
+      btnRedo.classList.add("hidden");
+    }
+  }
+  
+  if (btnRestore && textarea) {
+    const currentCode = textarea.value;
+    if (originalBaseCode && currentCode !== originalBaseCode) {
+      btnRestore.classList.remove("hidden");
+    } else {
+      btnRestore.classList.add("hidden");
+    }
+  }
+}
+
+async function sendChatbotMessage(event) {
+  event.preventDefault();
+  
+  const msgInput = document.getElementById("input-chatbot-msg");
+  if (!msgInput) return;
+  
+  const message = msgInput.value.trim();
+  if (!message) return;
+  
+  // Clear input
+  msgInput.value = "";
+  
+  // Render user bubble
+  renderChatbotBubble("user", message);
+  
+  // Push to history
+  chatHistory.push({ role: "user", text: message });
+  
+  const code = document.getElementById("textarea-review-code").value;
+  
+  // Show loading indicator
+  const chatbotBox = document.getElementById("chatbot-box");
+  const loaderId = "chatbot-loader-" + Date.now();
+  const loaderHtml = `
+    <div id="${loaderId}" class="bg-indigo-500/5 border border-indigo-500/10 text-slate-400 text-xs p-3 rounded-xl max-w-[85%] self-start flex items-center gap-2">
+      <div class="w-3 h-3 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+      <span>Assistant is typing...</span>
+    </div>
+  `;
+  chatbotBox.insertAdjacentHTML("beforeend", loaderHtml);
+  chatbotBox.scrollTop = chatbotBox.scrollHeight;
+  
+  try {
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        code: code,
+        message: message,
+        history: chatHistory
+      })
+    });
+    
+    // Remove loader
+    const loaderEl = document.getElementById(loaderId);
+    if (loaderEl) loaderEl.remove();
+    
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({ detail: "Chat failed. Verify your API Key." }));
+      renderChatbotBubble("model", `Error: ${errData.detail || "Unable to retrieve response."}`);
+      return;
+    }
+    
+    const data = await response.json();
+    const botText = data.text || "";
+    
+    // Render assistant response
+    renderChatbotBubble("model", botText);
+    
+    // Push to history
+    chatHistory.push({ role: "model", text: botText });
+    
+  } catch (err) {
+    const loaderEl = document.getElementById(loaderId);
+    if (loaderEl) loaderEl.remove();
+    renderChatbotBubble("model", "Network error. Please try again.");
+  }
+}
+
+// Global container to store code suggestions for Accept/Reject
+let suggestedCodeSuggestions = {};
+
+function renderChatbotBubble(sender, text) {
+  const chatbotBox = document.getElementById("chatbot-box");
+  if (!chatbotBox) return;
+  
+  const isUser = sender === "user";
+  const alignClass = isUser ? "self-end bg-indigo-600 text-white" : "self-start bg-slate-900 border border-white/5 text-slate-200";
+  
+  // Parse markdown code blocks in bot response
+  let bubbleContent = "";
+  if (isUser) {
+    bubbleContent = escapeHtml(text).replace(/\n/g, "<br>");
+  } else {
+    // Process markdown code blocks: ```[lang]\n[code]\n```
+    const regex = /```(\w*)\n([\s\S]*?)\n```/g;
+    let lastIndex = 0;
+    let match;
+    
+    while ((match = regex.exec(text)) !== null) {
+      const precedingText = text.substring(lastIndex, match.index);
+      if (precedingText) {
+        bubbleContent += formatBotText(precedingText);
+      }
+      
+      const lang = match[1] || "code";
+      const code = match[2];
+      const codeId = "code-suggestion-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
+      
+      // Store code globally for application
+      suggestedCodeSuggestions[codeId] = code;
+      
+      bubbleContent += `
+        <div class="my-3 border border-indigo-500/20 rounded-xl overflow-hidden bg-slate-950">
+          <div class="flex items-center justify-between px-3 py-1.5 bg-slate-900 border-b border-indigo-500/10 text-[10px] text-slate-400">
+            <span class="font-mono uppercase">${lang}</span>
+            <span class="font-semibold text-indigo-400">Suggested Code</span>
+          </div>
+          <pre class="p-3 text-[11px] font-mono overflow-x-auto text-indigo-200">${escapeHtml(code)}</pre>
+          <div id="actions-${codeId}" class="flex border-t border-indigo-500/10 text-xs">
+            <button type="button" onclick="applyChatbotCode('${codeId}')" class="flex-1 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-semibold border-r border-indigo-500/10 transition-all flex items-center justify-center gap-1">
+              <i class="fa-solid fa-check"></i> Accept Changes
+            </button>
+            <button type="button" onclick="rejectChatbotCode('${codeId}')" class="flex-1 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-semibold transition-all flex items-center justify-center gap-1">
+              <i class="fa-solid fa-xmark"></i> Reject
+            </button>
+          </div>
+        </div>
+      `;
+      
+      lastIndex = regex.lastIndex;
+    }
+    
+    const remainingText = text.substring(lastIndex);
+    if (remainingText) {
+      bubbleContent += formatBotText(remainingText);
+    }
+  }
+  
+  const bubbleHtml = `
+    <div class="${alignClass} text-xs p-3 rounded-xl max-w-[85%] leading-relaxed">
+      ${bubbleContent}
+    </div>
+  `;
+  
+  chatbotBox.insertAdjacentHTML("beforeend", bubbleHtml);
+  chatbotBox.scrollTop = chatbotBox.scrollHeight;
+}
+
+function formatBotText(text) {
+  // Simple markdown-to-html helper for inline code and linebreaks
+  return escapeHtml(text)
+    .replace(/\n/g, "<br>")
+    .replace(/`([^`]+)`/g, '<code class="bg-slate-950 px-1 py-0.5 rounded text-indigo-300 font-mono text-[10px]">$1</code>');
+}
+
+function applyChatbotCode(codeId) {
+  const code = suggestedCodeSuggestions[codeId];
+  if (!code) return;
+  
+  const textarea = document.getElementById("textarea-review-code");
+  if (!textarea) return;
+  
+  // Push to undo stack
+  codeUndoStack.push(textarea.value);
+  
+  // Clear redo stack on new action
+  codeRedoStack = [];
+  
+  // Update editor value
+  textarea.value = code;
+  
+  // Hide actions panel for this suggestion
+  const actionsEl = document.getElementById(`actions-${codeId}`);
+  if (actionsEl) {
+    actionsEl.innerHTML = `
+      <div class="w-full py-1.5 text-center text-emerald-400 bg-emerald-500/5 font-semibold text-[10px] flex items-center justify-center gap-1">
+        <i class="fa-solid fa-circle-check"></i> Changes Applied to Editor
+      </div>
+    `;
+  }
+  
+  updateUndoRedoRestoreButtons();
+}
+
+function rejectChatbotCode(codeId) {
+  // Hide actions panel for this suggestion
+  const actionsEl = document.getElementById(`actions-${codeId}`);
+  if (actionsEl) {
+    actionsEl.innerHTML = `
+      <div class="w-full py-1.5 text-center text-slate-500 bg-white/5 font-medium text-[10px]">
+        Suggestion Declined
+      </div>
+    `;
+  }
+}
+
+function undoLastAppliedCode() {
+  if (codeUndoStack.length === 0) return;
+  
+  const textarea = document.getElementById("textarea-review-code");
+  if (!textarea) return;
+  
+  // Push current state to redo stack
+  codeRedoStack.push(textarea.value);
+  
+  // Revert code
+  textarea.value = codeUndoStack.pop();
+  
+  updateUndoRedoRestoreButtons();
+}
+
+function redoLastUndoneCode() {
+  if (codeRedoStack.length === 0) return;
+  
+  const textarea = document.getElementById("textarea-review-code");
+  if (!textarea) return;
+  
+  // Push current state to undo stack
+  codeUndoStack.push(textarea.value);
+  
+  // Re-apply code
+  textarea.value = codeRedoStack.pop();
+  
+  updateUndoRedoRestoreButtons();
+}
+
+function restoreOriginalReviewCode() {
+  if (!originalBaseCode) return;
+  
+  const textarea = document.getElementById("textarea-review-code");
+  if (!textarea) return;
+  
+  if (textarea.value === originalBaseCode) return;
+  
+  // Push current to undo stack so restore itself can be undone!
+  codeUndoStack.push(textarea.value);
+  codeRedoStack = [];
+  
+  textarea.value = originalBaseCode;
+  
+  updateUndoRedoRestoreButtons();
+}
+
+// ================= SCREEN SHARE CHATBOT AND UNDO/REDO/RESTORE =================
+
+function resetScreenshareChatbot() {
+  screenshareChatHistory = [];
+  screenshareUndoStack = [];
+  screenshareRedoStack = [];
+  
+  const chatbotBox = document.getElementById("screenshare-chatbot-box");
+  if (chatbotBox) {
+    chatbotBox.innerHTML = `
+      <div class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-200 text-xs p-3 rounded-xl max-w-[85%] self-start">
+        Hello! I am your Screen Share code assistant. Ask me to modify, update, improve, or explain the captured code above.
+      </div>
+    `;
+  }
+  updateScreenshareUndoRedoRestoreButtons();
+}
+
+function updateScreenshareUndoRedoRestoreButtons() {
+  const btnUndo = document.getElementById("btn-screenshare-undo");
+  const btnRedo = document.getElementById("btn-screenshare-redo");
+  const btnRestore = document.getElementById("btn-screenshare-restore");
+  const fixedCodeContainer = document.getElementById("screenshare-fixed-code");
+  
+  if (btnUndo) {
+    if (screenshareUndoStack.length > 0) {
+      btnUndo.classList.remove("hidden");
+    } else {
+      btnUndo.classList.add("hidden");
+    }
+  }
+  
+  if (btnRedo) {
+    if (screenshareRedoStack.length > 0) {
+      btnRedo.classList.remove("hidden");
+    } else {
+      btnRedo.classList.add("hidden");
+    }
+  }
+  
+  if (btnRestore && fixedCodeContainer) {
+    const currentCode = fixedCodeContainer.textContent;
+    if (originalScreenshareBaseCode && currentCode !== originalScreenshareBaseCode) {
+      btnRestore.classList.remove("hidden");
+    } else {
+      btnRestore.classList.add("hidden");
+    }
+  }
+}
+
+async function sendScreenshareChatbotMessage(event) {
+  event.preventDefault();
+  
+  const msgInput = document.getElementById("input-screenshare-chatbot-msg");
+  if (!msgInput) return;
+  
+  const message = msgInput.value.trim();
+  if (!message) return;
+  
+  // Clear input
+  msgInput.value = "";
+  
+  // Render user bubble
+  renderScreenshareChatbotBubble("user", message);
+  
+  // Push to history
+  screenshareChatHistory.push({ role: "user", text: message });
+  
+  const codeContainer = document.getElementById("screenshare-fixed-code");
+  const code = codeContainer ? codeContainer.textContent : "";
+  
+  // Show loading indicator
+  const chatbotBox = document.getElementById("screenshare-chatbot-box");
+  const loaderId = "screenshare-chatbot-loader-" + Date.now();
+  const loaderHtml = `
+    <div id="${loaderId}" class="bg-emerald-500/5 border border-emerald-500/10 text-slate-400 text-xs p-3 rounded-xl max-w-[85%] self-start flex items-center gap-2">
+      <div class="w-3 h-3 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
+      <span>Assistant is typing...</span>
+    </div>
+  `;
+  chatbotBox.insertAdjacentHTML("beforeend", loaderHtml);
+  chatbotBox.scrollTop = chatbotBox.scrollHeight;
+  
+  try {
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        code: code,
+        message: message,
+        history: screenshareChatHistory
+      })
+    });
+    
+    // Remove loader
+    const loaderEl = document.getElementById(loaderId);
+    if (loaderEl) loaderEl.remove();
+    
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({ detail: "Chat failed. Verify your API Key." }));
+      renderScreenshareChatbotBubble("model", `Error: ${errData.detail || "Unable to retrieve response."}`);
+      return;
+    }
+    
+    const data = await response.json();
+    const botText = data.text || "";
+    
+    // Render assistant response
+    renderScreenshareChatbotBubble("model", botText);
+    
+    // Push to history
+    screenshareChatHistory.push({ role: "model", text: botText });
+    
+  } catch (err) {
+    const loaderEl = document.getElementById(loaderId);
+    if (loaderEl) loaderEl.remove();
+    renderScreenshareChatbotBubble("model", "Network error. Please try again.");
+  }
+}
+
+// Global container to store code suggestions for Accept/Reject (Screen Share)
+let suggestedScreenshareCodeSuggestions = {};
+
+function renderScreenshareChatbotBubble(sender, text) {
+  const chatbotBox = document.getElementById("screenshare-chatbot-box");
+  if (!chatbotBox) return;
+  
+  const isUser = sender === "user";
+  const alignClass = isUser ? "self-end bg-emerald-600 text-white" : "self-start bg-slate-900 border border-white/5 text-slate-200";
+  
+  // Parse markdown code blocks in bot response
+  let bubbleContent = "";
+  if (isUser) {
+    bubbleContent = escapeHtml(text).replace(/\n/g, "<br>");
+  } else {
+    // Process markdown code blocks: ```[lang]\n[code]\n```
+    const regex = /```(\w*)\n([\s\S]*?)\n```/g;
+    let lastIndex = 0;
+    let match;
+    
+    while ((match = regex.exec(text)) !== null) {
+      const precedingText = text.substring(lastIndex, match.index);
+      if (precedingText) {
+        bubbleContent += formatBotText(precedingText);
+      }
+      
+      const lang = match[1] || "code";
+      const code = match[2];
+      const codeId = "screenshare-code-suggestion-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
+      
+      // Store code globally for application
+      suggestedScreenshareCodeSuggestions[codeId] = code;
+      
+      bubbleContent += `
+        <div class="my-3 border border-emerald-500/20 rounded-xl overflow-hidden bg-slate-950">
+          <div class="flex items-center justify-between px-3 py-1.5 bg-slate-900 border-b border-emerald-500/10 text-[10px] text-slate-400">
+            <span class="font-mono uppercase">${lang}</span>
+            <span class="font-semibold text-emerald-400">Suggested Code</span>
+          </div>
+          <pre class="p-3 text-[11px] font-mono overflow-x-auto text-indigo-200">${escapeHtml(code)}</pre>
+          <div id="actions-${codeId}" class="flex border-t border-emerald-500/10 text-xs">
+            <button type="button" onclick="applyScreenshareChatbotCode('${codeId}')" class="flex-1 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-semibold border-r border-emerald-500/10 transition-all flex items-center justify-center gap-1">
+              <i class="fa-solid fa-check"></i> Accept Changes
+            </button>
+            <button type="button" onclick="rejectScreenshareChatbotCode('${codeId}')" class="flex-1 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-semibold transition-all flex items-center justify-center gap-1">
+              <i class="fa-solid fa-xmark"></i> Reject
+            </button>
+          </div>
+        </div>
+      `;
+      
+      lastIndex = regex.lastIndex;
+    }
+    
+    const remainingText = text.substring(lastIndex);
+    if (remainingText) {
+      bubbleContent += formatBotText(remainingText);
+    }
+  }
+  
+  const bubbleHtml = `
+    <div class="${alignClass} text-xs p-3 rounded-xl max-w-[85%] leading-relaxed">
+      ${bubbleContent}
+    </div>
+  `;
+  
+  chatbotBox.insertAdjacentHTML("beforeend", bubbleHtml);
+  chatbotBox.scrollTop = chatbotBox.scrollHeight;
+}
+
+function applyScreenshareChatbotCode(codeId) {
+  const code = suggestedScreenshareCodeSuggestions[codeId];
+  if (!code) return;
+  
+  const codeContainer = document.getElementById("screenshare-fixed-code");
+  if (!codeContainer) return;
+  
+  // Push to undo stack
+  screenshareUndoStack.push(codeContainer.textContent);
+  
+  // Clear redo stack on new action
+  screenshareRedoStack = [];
+  
+  // Update editor value
+  codeContainer.textContent = code;
+  
+  // Hide actions panel for this suggestion
+  const actionsEl = document.getElementById(`actions-${codeId}`);
+  if (actionsEl) {
+    actionsEl.innerHTML = `
+      <div class="w-full py-1.5 text-center text-emerald-400 bg-emerald-500/5 font-semibold text-[10px] flex items-center justify-center gap-1">
+        <i class="fa-solid fa-circle-check"></i> Changes Applied to Screen Share Code
+      </div>
+    `;
+  }
+  
+  updateScreenshareUndoRedoRestoreButtons();
+}
+
+function rejectScreenshareChatbotCode(codeId) {
+  // Hide actions panel for this suggestion
+  const actionsEl = document.getElementById(`actions-${codeId}`);
+  if (actionsEl) {
+    actionsEl.innerHTML = `
+      <div class="w-full py-1.5 text-center text-slate-500 bg-white/5 font-medium text-[10px]">
+        Suggestion Declined
+      </div>
+    `;
+  }
+}
+
+function undoLastAppliedScreenshareCode() {
+  if (screenshareUndoStack.length === 0) return;
+  
+  const codeContainer = document.getElementById("screenshare-fixed-code");
+  if (!codeContainer) return;
+  
+  // Push current state to redo stack
+  screenshareRedoStack.push(codeContainer.textContent);
+  
+  // Revert code
+  codeContainer.textContent = screenshareUndoStack.pop();
+  
+  updateScreenshareUndoRedoRestoreButtons();
+}
+
+function redoLastUndoneScreenshareCode() {
+  if (screenshareRedoStack.length === 0) return;
+  
+  const codeContainer = document.getElementById("screenshare-fixed-code");
+  if (!codeContainer) return;
+  
+  // Push current state to undo stack
+  screenshareUndoStack.push(codeContainer.textContent);
+  
+  // Re-apply code
+  codeContainer.textContent = screenshareRedoStack.pop();
+  
+  updateScreenshareUndoRedoRestoreButtons();
+}
+
+function restoreOriginalScreenshareCode() {
+  if (!originalScreenshareBaseCode) return;
+  
+  const codeContainer = document.getElementById("screenshare-fixed-code");
+  if (!codeContainer) return;
+  
+  if (codeContainer.textContent === originalScreenshareBaseCode) return;
+  
+  // Push current to undo stack so restore itself can be undone!
+  screenshareUndoStack.push(codeContainer.textContent);
+  screenshareRedoStack = [];
+  
+  codeContainer.textContent = originalScreenshareBaseCode;
+  
+  updateScreenshareUndoRedoRestoreButtons();
 }
