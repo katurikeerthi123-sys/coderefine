@@ -204,7 +204,7 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                             "optimized_code": row["optimized_code"],
                             "review_json": json.loads(row["review_json"]),
                             "chat_history": json.loads(row["chat_json"]) if row["chat_json"] else [],
-                            "created_at": row["created_at"]
+                            "created_at": row["created_at"].isoformat() if hasattr(row["created_at"], "isoformat") else str(row["created_at"] or "")
                         })
                 self.send_json(history)
                 return
