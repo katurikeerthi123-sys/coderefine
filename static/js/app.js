@@ -184,7 +184,9 @@ async function fetchProfile() {
   }
 }
 
-function logout() {
+async function logout() {
+  await saveCurrentSessionCode();
+  
   localStorage.removeItem("token");
   currentProfile = null;
   activeReviewId = null;
@@ -270,23 +272,25 @@ async function deleteHistoryItem(id, event) {
   }
 }
 
-function selectHistoryItem(item) {
+async function selectHistoryItem(item) {
+  await saveCurrentSessionCode();
+  
   switchTab("review");
   
   activeReviewId = item.id;
   
   // Pre-fill input
-  document.getElementById("textarea-review-code").value = item.original_code;
-  document.getElementById("select-review-lang").value = item.language;
+  document.getElementById("textarea-review-code").value = item.original_code || "";
+  document.getElementById("select-review-lang").value = item.language || "python";
   
   // Set original base code and reset stacks
-  originalBaseCode = item.original_code;
+  originalBaseCode = item.original_code || "";
   codeUndoStack = [];
   codeRedoStack = [];
   updateUndoRedoRestoreButtons();
   
   // Populate result view directly
-  displayCodeReviewResults(item.review_json);
+  displayCodeReviewResults(item);
   
   // Restore chatbot with historical messages
   chatHistory = item.chat_history || [];
@@ -416,9 +420,9 @@ async function runCodeReview() {
     const response = await fetch("/api/review", {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ code: code, language: lang })
+      body: JSON.stringify({ code: code, language: lang, review_id: activeReviewId })
     });
-
+ 
     const data = await response.ok ? await response.json() : null;
 
     if (!response.ok) {
@@ -870,6 +874,8 @@ function resetChatbot() {
 }
 
 async function startNewChat() {
+  await saveCurrentSessionCode();
+  
   try {
     const response = await fetch("/api/review/new", {
       method: "POST",
@@ -1463,5 +1469,19 @@ function toggleTheme() {
   } else {
     document.documentElement.classList.add("dark");
     localStorage.setItem("theme", "dark");
+  }
+}
+ 
+async function saveCurrentSessionCode() {
+  if (!activeReviewId) return;
+  const code = document.getElementById("textarea-review-code").value;
+  try {
+    await fetch("/api/review/update", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ id: activeReviewId, code: code })
+    });
+  } catch (err) {
+    console.error("Failed to auto-save current session:", err);
   }
 }

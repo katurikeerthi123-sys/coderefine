@@ -294,6 +294,7 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                     
                 code = data.get("code", "")
                 language = data.get("language", "")
+                review_id = data.get("review_id")
                 
                 if not code.strip():
                     self.send_error_json("Code cannot be empty", 400)
@@ -310,25 +311,51 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                         api_key=user.get("groq_key")
                     )
                     
-                    # Store in database
+                    # Store or update in database
                     with get_db() as conn:
                         cursor = conn.cursor()
-                        cursor.execute(
-                            """
-                            INSERT INTO reviews (user_id, title, language, original_code, optimized_code, review_json, chat_json)
-                            VALUES (?, ?, ?, ?, ?, ?, ?)
-                            """,
-                            (
-                                user["id"],
-                                review_result.get("title", f"{language.capitalize()} Optimization"),
-                                language,
-                                code,
-                                review_result.get("optimized_code", code),
-                                json.dumps(review_result),
-                                "[]"
+                        is_update = False
+                        if review_id:
+                            # Verify if it is an empty session that we can overwrite
+                            cursor.execute("SELECT id, original_code FROM reviews WHERE id = ? AND user_id = ?", (review_id, user["id"]))
+                            existing = cursor.fetchone()
+                            if existing and not existing["original_code"].strip():
+                                is_update = True
+                                
+                        if is_update:
+                            cursor.execute(
+                                """
+                                UPDATE reviews 
+                                SET title = ?, language = ?, original_code = ?, optimized_code = ?, review_json = ?
+                                WHERE id = ?
+                                """,
+                                (
+                                    review_result.get("title", f"{language.capitalize()} Optimization"),
+                                    language,
+                                    code,
+                                    review_result.get("optimized_code", code),
+                                    json.dumps(review_result),
+                                    review_id
+                                )
                             )
-                        )
-                        inserted_id = cursor.lastrowid
+                            inserted_id = review_id
+                        else:
+                            cursor.execute(
+                                """
+                                INSERT INTO reviews (user_id, title, language, original_code, optimized_code, review_json, chat_json)
+                                VALUES (?, ?, ?, ?, ?, ?, ?)
+                                """,
+                                (
+                                    user["id"],
+                                    review_result.get("title", f"{language.capitalize()} Optimization"),
+                                    language,
+                                    code,
+                                    review_result.get("optimized_code", code),
+                                    json.dumps(review_result),
+                                    "[]"
+                                )
+                            )
+                            inserted_id = cursor.lastrowid
                     
                     review_result["id"] = inserted_id
                     self.send_json(review_result)
@@ -535,6 +562,33 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                     "review_json": {},
                     "chat_history": []
                 }, 201)
+                return
+
+            # POST /api/review/update
+            if path == "/api/review/update":
+                user = self.get_authenticated_user()
+                if not user:
+                    self.send_error_json("Could not validate credentials", 401)
+                    return
+                    
+                review_id = data.get("id")
+                code = data.get("code", "")
+                title = data.get("title")
+                
+                with get_db() as conn:
+                    cursor = conn.cursor()
+                    # Check ownership
+                    cursor.execute("SELECT id FROM reviews WHERE id = ? AND user_id = ?", (review_id, user["id"]))
+                    if not cursor.fetchone():
+                        self.send_error_json("Review item not found", 404)
+                        return
+                        
+                    if title:
+                        cursor.execute("UPDATE reviews SET original_code = ?, title = ? WHERE id = ?", (code, title, review_id))
+                    else:
+                        cursor.execute("UPDATE reviews SET original_code = ? WHERE id = ?", (code, review_id))
+                        
+                self.send_json({"message": "Session updated successfully"})
                 return
 
             # POST /api/review/copy/{id}
