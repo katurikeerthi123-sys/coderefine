@@ -358,6 +358,8 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                             inserted_id = cursor.lastrowid
                     
                     review_result["id"] = inserted_id
+                    review_result["original_code"] = code
+                    review_result["language"] = language
                     self.send_json(review_result)
                 except Exception as e:
                     self.send_error_json(str(e), 500)

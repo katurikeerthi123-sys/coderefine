@@ -437,8 +437,6 @@ async function runCodeReview() {
       body: JSON.stringify({ code: code, language: lang, review_id: activeReviewId })
     });
  
-    const data = await response.ok ? await response.json() : null;
-
     if (!response.ok) {
       const errData = await response.json().catch(() => ({ detail: "Analysis failed. Verify your API Key." }));
       alert(errData.detail);
@@ -446,10 +444,16 @@ async function runCodeReview() {
       return;
     }
 
+    const data = await response.json();
+
     // Set baseline and reset chatbot session
     originalBaseCode = code;
     resetChatbot();
     activeReviewId = data.id || null;
+
+    // Ensure fields are set to prevent isBlankSession evaluation failure
+    data.original_code = code;
+    data.language = lang;
 
     displayCodeReviewResults(data);
     loadHistory(); // Reload SQLite history logs
