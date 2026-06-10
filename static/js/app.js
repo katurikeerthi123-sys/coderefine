@@ -145,7 +145,7 @@ async function handleAuthSubmit(event) {
     fetchProfile();
     loadHistory();
   } catch (err) {
-    showAuthError("Server unavailable. Please verify uvicorn is running.");
+    showAuthError("Server unavailable. Please verify the backend server is running.");
   }
 }
 
