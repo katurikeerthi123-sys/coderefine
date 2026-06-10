@@ -452,70 +452,84 @@ function displayCodeReviewResults(review) {
   document.getElementById("review-empty-state").classList.add("hidden");
   document.getElementById("review-result-container").classList.remove("hidden");
 
-  // Populate values
-  document.getElementById("review-result-title").textContent = review.title || "Code Optimization Review";
-  
-  // Populate recommendations list
-  const improvementsList = document.getElementById("review-improvements-list");
-  if (review.improvements && review.improvements.length > 0) {
-    improvementsList.innerHTML = review.improvements.map(imp => `<li>${escapeHtml(imp)}</li>`).join("");
-  } else {
-    improvementsList.innerHTML = "<li>No critical optimization recommendations provided.</li>";
-  }
+  const isBlankSession = !review.original_code || !review.original_code.trim();
 
-  // Populate security badges
-  const badgeContainer = document.getElementById("security-badge-container");
-  if (review.security_badges && review.security_badges.length > 0) {
-    badgeContainer.innerHTML = review.security_badges.map(badge => {
-      let colorClass = "bg-indigo-50 dark:bg-indigo-500/10 border-indigo-100 dark:border-indigo-500/25 text-indigo-600 dark:text-indigo-400";
-      if (badge.status === "danger") {
-        colorClass = "bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/25 text-rose-600 dark:text-rose-400";
-      } else if (badge.status === "warning") {
-        colorClass = "bg-amber-50 dark:bg-amber-500/10 border-amber-100 dark:border-amber-500/25 text-amber-700 dark:text-amber-400";
-      } else if (badge.status === "success") {
-        colorClass = "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/25 text-emerald-600 dark:text-emerald-400";
-      }
-      return `
-        <span class="text-[10px] font-semibold ${colorClass} border px-2.5 py-1 rounded-full uppercase tracking-wider" title="${escapeHtml(badge.description)}">
-          ${escapeHtml(badge.name)}
-        </span>
-      `;
-    }).join("");
-  } else {
-    badgeContainer.innerHTML = `<span class="text-[10px] bg-slate-500/10 border-slate-500/25 border text-slate-400 px-2.5 py-1 rounded-full uppercase tracking-wider">No Security Flags</span>`;
-  }
-
-  // Populate Bugs
+  const summaryCard = document.getElementById("review-summary-card");
+  const diffsCard = document.getElementById("review-diffs-card");
   const bugsContainer = document.getElementById("review-bugs-container");
-  const bugsList = document.getElementById("review-bugs-list");
-  if (review.bugs && review.bugs.length > 0) {
-    bugsContainer.classList.remove("hidden");
-    bugsList.innerHTML = review.bugs.map(bug => {
-      let badgeColor = "bg-slate-100 dark:bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-500/20";
-      if (bug.severity === "High") badgeColor = "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-500/20";
-      if (bug.severity === "Medium") badgeColor = "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20";
-      if (bug.severity === "Low") badgeColor = "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20";
-      
-      return `
-        <div class="bg-slate-50 dark:bg-slate-950/60 rounded-xl p-3 border border-slate-200 dark:border-white/5 space-y-1.5">
-          <div class="flex items-center gap-2">
-            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${badgeColor}">${bug.severity}</span>
-            <span class="text-xs font-semibold text-slate-900 dark:text-white">Line ${bug.line_number}</span>
-          </div>
-          <p class="text-xs text-slate-750 dark:text-slate-300 leading-relaxed">${escapeHtml(bug.description)}</p>
-          <div class="text-[10px] text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-400/5 px-2.5 py-1 rounded border border-indigo-200/50 dark:border-indigo-400/10">
-            <span class="font-bold">Fix Suggestion:</span> ${escapeHtml(bug.suggestion)}
-          </div>
-        </div>
-      `;
-    }).join("");
-  } else {
-    bugsContainer.classList.add("hidden");
-  }
 
-  // Populate Diffs
-  document.getElementById("diff-original-code").textContent = document.getElementById("textarea-review-code").value;
-  document.getElementById("diff-optimized-code").textContent = review.optimized_code || "";
+  if (isBlankSession) {
+    if (summaryCard) summaryCard.classList.add("hidden");
+    if (diffsCard) diffsCard.classList.add("hidden");
+    if (bugsContainer) bugsContainer.classList.add("hidden");
+  } else {
+    if (summaryCard) summaryCard.classList.remove("hidden");
+    if (diffsCard) diffsCard.classList.remove("hidden");
+    
+    // Populate values
+    document.getElementById("review-result-title").textContent = review.title || "Code Optimization Review";
+    
+    // Populate recommendations list
+    const improvementsList = document.getElementById("review-improvements-list");
+    if (review.improvements && review.improvements.length > 0) {
+      improvementsList.innerHTML = review.improvements.map(imp => `<li>${escapeHtml(imp)}</li>`).join("");
+    } else {
+      improvementsList.innerHTML = "<li>No critical optimization recommendations provided.</li>";
+    }
+
+    // Populate security badges
+    const badgeContainer = document.getElementById("security-badge-container");
+    if (review.security_badges && review.security_badges.length > 0) {
+      badgeContainer.innerHTML = review.security_badges.map(badge => {
+        let colorClass = "bg-indigo-50 dark:bg-indigo-500/10 border-indigo-100 dark:border-indigo-500/25 text-indigo-600 dark:text-indigo-400";
+        if (badge.status === "danger") {
+          colorClass = "bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/25 text-rose-600 dark:text-rose-400";
+        } else if (badge.status === "warning") {
+          colorClass = "bg-amber-50 dark:bg-amber-500/10 border-amber-100 dark:border-amber-500/25 text-amber-700 dark:text-amber-400";
+        } else if (badge.status === "success") {
+          colorClass = "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/25 text-emerald-600 dark:text-emerald-400";
+        }
+        return `
+          <span class="text-[10px] font-semibold ${colorClass} border px-2.5 py-1 rounded-full uppercase tracking-wider" title="${escapeHtml(badge.description)}">
+            ${escapeHtml(badge.name)}
+          </span>
+        `;
+      }).join("");
+    } else {
+      badgeContainer.innerHTML = `<span class="text-[10px] bg-slate-500/10 border-slate-500/25 border text-slate-400 px-2.5 py-1 rounded-full uppercase tracking-wider">No Security Flags</span>`;
+    }
+
+    // Populate Bugs
+    const bugsList = document.getElementById("review-bugs-list");
+    if (review.bugs && review.bugs.length > 0) {
+      bugsContainer.classList.remove("hidden");
+      bugsList.innerHTML = review.bugs.map(bug => {
+        let badgeColor = "bg-slate-100 dark:bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-500/20";
+        if (bug.severity === "High") badgeColor = "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-500/20";
+        if (bug.severity === "Medium") badgeColor = "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20";
+        if (bug.severity === "Low") badgeColor = "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20";
+        
+        return `
+          <div class="bg-slate-50 dark:bg-slate-950/60 rounded-xl p-3 border border-slate-200 dark:border-white/5 space-y-1.5">
+            <div class="flex items-center gap-2">
+              <span class="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${badgeColor}">${bug.severity}</span>
+              <span class="text-xs font-semibold text-slate-900 dark:text-white">Line ${bug.line_number}</span>
+            </div>
+            <p class="text-xs text-slate-750 dark:text-slate-300 leading-relaxed">${escapeHtml(bug.description)}</p>
+            <div class="text-[10px] text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-400/5 px-2.5 py-1 rounded border border-indigo-200/50 dark:border-indigo-400/10">
+              <span class="font-bold">Fix Suggestion:</span> ${escapeHtml(bug.suggestion)}
+            </div>
+          </div>
+        `;
+      }).join("");
+    } else {
+      bugsContainer.classList.add("hidden");
+    }
+
+    // Populate Diffs
+    document.getElementById("diff-original-code").textContent = document.getElementById("textarea-review-code").value;
+    document.getElementById("diff-optimized-code").textContent = review.optimized_code || "";
+  }
 }
 
 function copyOptimizedCode() {
@@ -856,13 +870,8 @@ function resetChatbot() {
 }
 
 async function startNewChat() {
-  if (!activeReviewId) {
-    alert("No active code review session to start a new chat on. Please run an optimization first.");
-    return;
-  }
-  
   try {
-    const response = await fetch(`/api/review/copy/${activeReviewId}`, {
+    const response = await fetch("/api/review/new", {
       method: "POST",
       headers: getAuthHeaders()
     });
@@ -878,8 +887,15 @@ async function startNewChat() {
     // Set the new review ID as active
     activeReviewId = newReview.id;
     
-    // Clear chat history
+    // Reset inputs and workspace code views
+    document.getElementById("textarea-review-code").value = "";
+    document.getElementById("diff-original-code").textContent = "";
+    document.getElementById("diff-optimized-code").textContent = "";
+    originalBaseCode = "";
+    
+    // Clear chat history and set interface to chatbot focus
     resetChatbot();
+    displayCodeReviewResults(newReview);
     
     // Reload history panel so the new copy is displayed in the sidebar
     await loadHistory();
@@ -983,6 +999,11 @@ async function sendChatbotMessage(event) {
     
     // Push to history
     chatHistory.push({ role: "model", text: botText });
+    
+    // Reload history list if it was a new untitled chat to update the title in the sidebar
+    if (chatHistory.length <= 2) {
+      loadHistory();
+    }
     
   } catch (err) {
     const loaderEl = document.getElementById(loaderId);

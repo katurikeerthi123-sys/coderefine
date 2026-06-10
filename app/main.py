@@ -185,7 +185,7 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                     cursor = conn.cursor()
                     cursor.execute(
                         """
-                        SELECT id, title, language, original_code, optimized_code, review_json, created_at
+                        SELECT id, title, language, original_code, optimized_code, review_json, chat_json, created_at
                         FROM reviews
                         WHERE user_id = ?
                         ORDER BY created_at DESC
@@ -203,6 +203,7 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                             "original_code": row["original_code"],
                             "optimized_code": row["optimized_code"],
                             "review_json": json.loads(row["review_json"]),
+                            "chat_history": json.loads(row["chat_json"]) if row["chat_json"] else [],
                             "created_at": row["created_at"]
                         })
                 self.send_json(history)
@@ -314,8 +315,8 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                         cursor = conn.cursor()
                         cursor.execute(
                             """
-                            INSERT INTO reviews (user_id, title, language, original_code, optimized_code, review_json)
-                            VALUES (?, ?, ?, ?, ?, ?)
+                            INSERT INTO reviews (user_id, title, language, original_code, optimized_code, review_json, chat_json)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)
                             """,
                             (
                                 user["id"],
@@ -323,9 +324,13 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                                 language,
                                 code,
                                 review_result.get("optimized_code", code),
-                                json.dumps(review_result)
+                                json.dumps(review_result),
+                                "[]"
                             )
                         )
+                        inserted_id = cursor.lastrowid
+                    
+                    review_result["id"] = inserted_id
                     self.send_json(review_result)
                 except Exception as e:
                     self.send_error_json(str(e), 500)
@@ -451,8 +456,9 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                 code = data.get("code", "")
                 message = data.get("message", "")
                 history = data.get("history", [])
+                review_id = data.get("review_id")
                 
-                if not is_valid_source_code(code):
+                if code.strip() and not is_valid_source_code(code):
                     self.send_error_json("This is not code. Please enter valid source code.", 400)
                     return
                     
@@ -463,9 +469,126 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                         history=history,
                         api_key=user.get("groq_key")
                     )
+                    
+                    if review_id:
+                        # Reconstruct full history with the newly received assistant response
+                        updated_history = list(history)
+                        updated_history.append({"role": "model", "text": response_text})
+                        with get_db() as conn:
+                            cursor = conn.cursor()
+                            # Check ownership and fetch title
+                            cursor.execute("SELECT id, title FROM reviews WHERE id = ? AND user_id = ?", (review_id, user["id"]))
+                            review = cursor.fetchone()
+                            if review:
+                                # If the review title is "Untitled Chat", let's update it to the first message!
+                                if review["title"] == "Untitled Chat" and len(history) == 1:
+                                    first_msg = message.strip()
+                                    new_title = first_msg[:30] + ("..." if len(first_msg) > 30 else "")
+                                    cursor.execute(
+                                        "UPDATE reviews SET chat_json = ?, title = ? WHERE id = ?",
+                                        (json.dumps(updated_history), new_title, review_id)
+                                    )
+                                else:
+                                    cursor.execute(
+                                        "UPDATE reviews SET chat_json = ? WHERE id = ?",
+                                        (json.dumps(updated_history), review_id)
+                                    )
+                                
                     self.send_json({"text": response_text})
                 except Exception as e:
                     self.send_error_json(str(e), 500)
+                return
+
+            # POST /api/review/new
+            if path == "/api/review/new":
+                user = self.get_authenticated_user()
+                if not user:
+                    self.send_error_json("Could not validate credentials", 401)
+                    return
+                    
+                # Create a blank review record
+                with get_db() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        """
+                        INSERT INTO reviews (user_id, title, language, original_code, optimized_code, review_json, chat_json)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            user["id"],
+                            "Untitled Chat",
+                            "general",
+                            "",
+                            "",
+                            "{}",
+                            "[]"
+                        )
+                    )
+                    new_id = cursor.lastrowid
+                    
+                self.send_json({
+                    "id": new_id,
+                    "title": "Untitled Chat",
+                    "language": "general",
+                    "original_code": "",
+                    "optimized_code": "",
+                    "review_json": {},
+                    "chat_history": []
+                }, 201)
+                return
+
+            # POST /api/review/copy/{id}
+            match = re.match(r'^/api/review/copy/(\d+)$', path)
+            if match:
+                user = self.get_authenticated_user()
+                if not user:
+                    self.send_error_json("Could not validate credentials", 401)
+                    return
+                    
+                review_id = int(match.group(1))
+                with get_db() as conn:
+                    cursor = conn.cursor()
+                    # Fetch original review
+                    cursor.execute(
+                        """
+                        SELECT title, language, original_code, optimized_code, review_json
+                        FROM reviews
+                        WHERE id = ? AND user_id = ?
+                        """,
+                        (review_id, user["id"])
+                    )
+                    original = cursor.fetchone()
+                    if not original:
+                        self.send_error_json("Review item not found", 404)
+                        return
+                        
+                    # Insert new copy with empty chat_json
+                    cursor.execute(
+                        """
+                        INSERT INTO reviews (user_id, title, language, original_code, optimized_code, review_json, chat_json)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            user["id"],
+                            original["title"],
+                            original["language"],
+                            original["original_code"],
+                            original["optimized_code"],
+                            original["review_json"],
+                            "[]"
+                        )
+                    )
+                    new_id = cursor.lastrowid
+                    
+                self.send_json({
+                    "id": new_id,
+                    "title": original["title"],
+                    "language": original["language"],
+                    "original_code": original["original_code"],
+                    "optimized_code": original["optimized_code"],
+                    "review_json": json.loads(original["review_json"]),
+                    "chat_history": []
+                }, 201)
                 return
 
             # Route not matched

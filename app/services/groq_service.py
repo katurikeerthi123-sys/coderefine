@@ -261,19 +261,26 @@ def chat_about_code(code: str, message: str, history: List[Dict[str, str]], api_
     """
     Simulates a chat about a specific code snippet with Groq.
     """
-    system_instruction = f"""
-    You are a professional software engineering chatbot.
-    Your sole focus is to help the user modify, update, improve, debug, and explain this code:
-    
-    ```
-    {code}
-    ```
-    
-    Guidelines:
-    1. Only answer questions directly related to this code or software engineering queries about it.
-    2. If the user asks general or unrelated questions, politely refuse and remind them that you can only discuss this specific code block.
-    3. Keep explanations clear, and return code modifications directly inside markdown blocks.
-    """
+    if code.strip():
+        system_instruction = f"""
+        You are a professional software engineering chatbot.
+        Your sole focus is to help the user modify, update, improve, debug, and explain this code:
+        
+        ```
+        {code}
+        ```
+        
+        Guidelines:
+        1. Only answer questions directly related to this code or software engineering queries about it.
+        2. If the user asks general or unrelated questions, politely refuse and remind them that you can only discuss this specific code block.
+        3. Keep explanations clear, and return code modifications directly inside markdown blocks.
+        """
+    else:
+        system_instruction = """
+        You are a professional software engineering chatbot and assistant.
+        You help the user write, debug, explain, and optimize software engineering concepts, algorithms, and code.
+        Keep explanations clear, and return code snippets directly inside markdown blocks.
+        """
     
     messages = [
         {"role": "system", "content": system_instruction}
