@@ -37,6 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupCodeReviewListeners();
 });
 
+let autosaveTimeout = null;
 function setupCodeReviewListeners() {
   const textarea = document.getElementById("textarea-review-code");
   if (textarea) {
@@ -45,6 +46,19 @@ function setupCodeReviewListeners() {
       codeUndoStack = [];
       codeRedoStack = [];
       updateUndoRedoRestoreButtons();
+      
+      // Debounced autosave
+      if (autosaveTimeout) clearTimeout(autosaveTimeout);
+      autosaveTimeout = setTimeout(() => {
+        saveCurrentSessionCode();
+      }, 1000);
+    });
+  }
+  
+  const langSelect = document.getElementById("select-review-lang");
+  if (langSelect) {
+    langSelect.addEventListener("change", () => {
+      saveCurrentSessionCode();
     });
   }
 }
@@ -962,6 +976,7 @@ async function sendChatbotMessage(event) {
   chatHistory.push({ role: "user", text: message });
   
   const code = document.getElementById("textarea-review-code").value;
+  const lang = document.getElementById("select-review-lang").value;
   
   // Show loading indicator
   const chatbotBox = document.getElementById("chatbot-box");
@@ -981,6 +996,7 @@ async function sendChatbotMessage(event) {
       headers: getAuthHeaders(),
       body: JSON.stringify({
         code: code,
+        language: lang,
         message: message,
         history: chatHistory,
         review_id: activeReviewId
@@ -1475,11 +1491,12 @@ function toggleTheme() {
 async function saveCurrentSessionCode() {
   if (!activeReviewId) return;
   const code = document.getElementById("textarea-review-code").value;
+  const lang = document.getElementById("select-review-lang").value;
   try {
     await fetch("/api/review/update", {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ id: activeReviewId, code: code })
+      body: JSON.stringify({ id: activeReviewId, code: code, language: lang })
     });
   } catch (err) {
     console.error("Failed to auto-save current session:", err);

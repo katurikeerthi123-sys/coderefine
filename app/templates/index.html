@@ -340,7 +340,9 @@
                     <div class="bg-indigo-500/10 border border-indigo-500/20 text-indigo-950 dark:text-indigo-200 text-xs p-3 rounded-xl max-w-[85%] self-start">
                       Hello! I am your Code Review assistant. Ask me to modify, update, improve, or explain the uploaded code above.
                     </div>
-                     <!-- Chat input -->
+                  </div>
+
+                  <!-- Chat input -->
                   <form id="chatbot-form" onsubmit="sendChatbotMessage(event)" class="flex gap-2">
                     <input type="text" id="input-chatbot-msg" placeholder="Ask me to rewrite in a different language, add error handling, etc..." class="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-slate-800 dark:text-white text-sm focus:outline-none focus:border-indigo-500 transition-all" required>
                     <button type="submit" id="btn-chatbot-send" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-5 py-2.5 font-semibold text-sm transition-all hover:shadow-lg flex items-center gap-1.5">

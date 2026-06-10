@@ -481,6 +481,7 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                     return
                     
                 code = data.get("code", "")
+                language = data.get("language")
                 message = data.get("message", "")
                 history = data.get("history", [])
                 review_id = data.get("review_id")
@@ -511,15 +512,27 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                                 if review["title"] == "Untitled Chat" and len(history) == 1:
                                     first_msg = message.strip()
                                     new_title = first_msg[:30] + ("..." if len(first_msg) > 30 else "")
-                                    cursor.execute(
-                                        "UPDATE reviews SET chat_json = ?, title = ? WHERE id = ?",
-                                        (json.dumps(updated_history), new_title, review_id)
-                                    )
+                                    if language:
+                                        cursor.execute(
+                                            "UPDATE reviews SET chat_json = ?, title = ?, original_code = ?, language = ? WHERE id = ?",
+                                            (json.dumps(updated_history), new_title, code, language, review_id)
+                                        )
+                                    else:
+                                        cursor.execute(
+                                            "UPDATE reviews SET chat_json = ?, title = ?, original_code = ? WHERE id = ?",
+                                            (json.dumps(updated_history), new_title, code, review_id)
+                                        )
                                 else:
-                                    cursor.execute(
-                                        "UPDATE reviews SET chat_json = ? WHERE id = ?",
-                                        (json.dumps(updated_history), review_id)
-                                    )
+                                    if language:
+                                        cursor.execute(
+                                            "UPDATE reviews SET chat_json = ?, original_code = ?, language = ? WHERE id = ?",
+                                            (json.dumps(updated_history), code, language, review_id)
+                                        )
+                                    else:
+                                        cursor.execute(
+                                            "UPDATE reviews SET chat_json = ?, original_code = ? WHERE id = ?",
+                                            (json.dumps(updated_history), code, review_id)
+                                        )
                                 
                     self.send_json({"text": response_text})
                 except Exception as e:
@@ -574,6 +587,7 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                 review_id = data.get("id")
                 code = data.get("code", "")
                 title = data.get("title")
+                language = data.get("language")
                 
                 with get_db() as conn:
                     cursor = conn.cursor()
@@ -583,8 +597,12 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                         self.send_error_json("Review item not found", 404)
                         return
                         
-                    if title:
+                    if title and language:
+                        cursor.execute("UPDATE reviews SET original_code = ?, title = ?, language = ? WHERE id = ?", (code, title, language, review_id))
+                    elif title:
                         cursor.execute("UPDATE reviews SET original_code = ?, title = ? WHERE id = ?", (code, title, review_id))
+                    elif language:
+                        cursor.execute("UPDATE reviews SET original_code = ?, language = ? WHERE id = ?", (code, language, review_id))
                     else:
                         cursor.execute("UPDATE reviews SET original_code = ? WHERE id = ?", (code, review_id))
                         

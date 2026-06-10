@@ -23,6 +23,7 @@ class DictCursorWrapper:
     def __init__(self, cursor, is_postgres):
         self.cursor = cursor
         self.is_postgres = is_postgres
+        self._lastrowid = None
 
     def execute(self, query, params=None):
         if params is None:
@@ -37,7 +38,21 @@ class DictCursorWrapper:
                 query = query.replace("INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY")
                 query = query.replace("TEXT UNIQUE", "VARCHAR(255) UNIQUE")
                 
+            query_upper = query.upper().strip()
+            if query_upper.startswith("INSERT ") and " RETURNING " not in query_upper:
+                query = query.rstrip().rstrip(';') + " RETURNING id"
+                self.cursor.execute(query, params)
+                try:
+                    row = self.cursor.fetchone()
+                    if row:
+                        self._lastrowid = row[0]
+                except Exception:
+                    pass
+                return self
+                
         self.cursor.execute(query, params)
+        if not self.is_postgres:
+            self._lastrowid = self.cursor.lastrowid
         return self
 
     def fetchone(self):
@@ -55,7 +70,7 @@ class DictCursorWrapper:
 
     @property
     def lastrowid(self):
-        return self.cursor.lastrowid
+        return self._lastrowid
 
     def __getattr__(self, name):
         return getattr(self.cursor, name)
@@ -150,10 +165,20 @@ def init_db():
             original_code TEXT NOT NULL,
             optimized_code TEXT NOT NULL,
             review_json TEXT NOT NULL,
+            chat_json TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
         """)
+        
+        # Add chat_json column to reviews table if it does not exist yet
+        try:
+            cursor.execute("SELECT chat_json FROM reviews LIMIT 1;")
+        except Exception:
+            try:
+                cursor.execute("ALTER TABLE reviews ADD COLUMN chat_json TEXT;")
+            except Exception as e:
+                print(f"Warning: Failed to add chat_json column: {str(e)}")
         
         print("Database initialized successfully.")
 
