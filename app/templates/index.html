@@ -115,6 +115,14 @@
         </button>
       </div>
 
+      <!-- New Chat Button -->
+      <div class="p-3 border-b border-slate-200/50 dark:border-white/10">
+        <button onclick="startNewChat()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl py-2.5 px-4 font-semibold text-xs transition-all hover:shadow-lg hover:shadow-indigo-500/20 flex items-center justify-center gap-2 border border-indigo-500/20 shadow-md">
+          <i class="fa-solid fa-plus text-xs"></i>
+          <span>New Chat</span>
+        </button>
+      </div>
+
       <!-- History Items Scroll Container -->
       <div id="history-list-container" class="flex-1 overflow-y-auto p-3 space-y-2">
         <!-- Rendered dynamically from JS -->
@@ -322,9 +330,6 @@
                       </button>
                       <button id="btn-chatbot-redo" onclick="redoLastUndoneCode()" class="hidden text-[10px] text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 bg-sky-500/10 border border-sky-500/20 px-2.5 py-1 rounded-full transition-all flex items-center gap-1">
                         <i class="fa-solid fa-rotate-right"></i> Redo
-                      </button>
-                      <button id="btn-chatbot-new" onclick="startNewChat()" class="text-[10px] text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full transition-all flex items-center gap-1">
-                        <i class="fa-solid fa-plus"></i> New Chat
                       </button>
                       <span class="text-[10px] text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 px-2 py-0.5 rounded-full">Focusing on uploaded code</span>
                     </div>
