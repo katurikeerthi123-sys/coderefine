@@ -145,15 +145,27 @@ def init_db():
         );
         """)
         
-        # Add groq_key column to users table if it does not exist yet (only applicable for SQLite)
-        if not IS_POSTGRES:
+        # Check if groq_key exists in users table
+        has_groq_key = False
+        if IS_POSTGRES:
+            cursor.execute(
+                "SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'groq_key';"
+            )
+            if cursor.fetchone():
+                has_groq_key = True
+        else:
+            cursor.execute("PRAGMA table_info(users);")
+            for row in cursor.fetchall():
+                if row[1] == 'groq_key' or row.get('name') == 'groq_key':
+                    has_groq_key = True
+                    break
+                    
+        if not has_groq_key:
             try:
-                cursor.execute("SELECT groq_key FROM users LIMIT 1;")
-            except sqlite3.OperationalError:
-                try:
-                    cursor.execute("ALTER TABLE users ADD COLUMN groq_key TEXT;")
-                except Exception as e:
-                    print(f"Warning: Failed to add groq_key column: {str(e)}")
+                cursor.execute("ALTER TABLE users ADD COLUMN groq_key TEXT;")
+                print("Added column groq_key to users table.")
+            except Exception as e:
+                print(f"Warning: Failed to add groq_key column: {str(e)}")
         
         # Create reviews table
         cursor.execute("""
@@ -171,12 +183,25 @@ def init_db():
         );
         """)
         
-        # Add chat_json column to reviews table if it does not exist yet
-        try:
-            cursor.execute("SELECT chat_json FROM reviews LIMIT 1;")
-        except Exception:
+        # Check if chat_json exists in reviews table
+        has_chat_json = False
+        if IS_POSTGRES:
+            cursor.execute(
+                "SELECT 1 FROM information_schema.columns WHERE table_name = 'reviews' AND column_name = 'chat_json';"
+            )
+            if cursor.fetchone():
+                has_chat_json = True
+        else:
+            cursor.execute("PRAGMA table_info(reviews);")
+            for row in cursor.fetchall():
+                if row[1] == 'chat_json' or row.get('name') == 'chat_json':
+                    has_chat_json = True
+                    break
+                    
+        if not has_chat_json:
             try:
                 cursor.execute("ALTER TABLE reviews ADD COLUMN chat_json TEXT;")
+                print("Added column chat_json to reviews table.")
             except Exception as e:
                 print(f"Warning: Failed to add chat_json column: {str(e)}")
         
