@@ -46,6 +46,7 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
     Pure Python HTTP Request Handler serving both the static SPA frontend
     and the REST API endpoints.
     """
+    protocol_version = "HTTP/1.1"
     
     def log_message(self, format, *args):
         # Override to log cleanly to stdout
@@ -56,6 +57,7 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, DELETE')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        self.send_header('Connection', 'close')
         super().end_headers()
 
     def do_OPTIONS(self):
