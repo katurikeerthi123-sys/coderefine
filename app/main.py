@@ -721,7 +721,7 @@ def sys_stderr_write(msg: str):
     sys.stderr.write(msg)
     sys.stderr.flush()
 
-def run_server(host: str = "127.0.0.1", port: int = 8000):
+def run_server(host: str = "0.0.0.0", port: int = 8000):
     server_address = (host, port)
     httpd = HTTPServer(server_address, CodeRefineRequestHandler)
     print(f"CodeRefine HTTP Server running on http://{host}:{port}/")

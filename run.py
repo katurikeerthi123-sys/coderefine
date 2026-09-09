@@ -15,6 +15,6 @@ if __name__ == "__main__":
     print("Web User Interface: http://127.0.0.1:8000/")
     print("Local SQLite file:  app.db")
     print("=" * 60)
-    host = os.getenv("HOST", "127.0.0.1")
+    host = os.getenv("HOST", "0.0.0.0")
     port = int(os.getenv("PORT", "8000"))
     run_server(host=host, port=port)
