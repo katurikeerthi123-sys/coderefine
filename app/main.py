@@ -732,4 +732,6 @@ def run_server(host: str = "0.0.0.0", port: int = 8000):
         httpd.server_close()
 
 if __name__ == "__main__":
-    run_server()
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", "8000"))
+    run_server(host=host, port=port)
