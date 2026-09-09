@@ -1,3 +1,4 @@
 # CodeRefine uses psycopg2-binary in production for persistent PostgreSQL database storage.
 # For local development, it still defaults to SQLite which requires ZERO external dependencies!
 psycopg2-binary
+gunicorn

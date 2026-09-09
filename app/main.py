@@ -1,6 +1,7 @@
 import json
 import re
 import os
+import io
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -739,6 +740,63 @@ def run_server(host: str = "0.0.0.0", port: int = 8000):
     except KeyboardInterrupt:
         print("\nStopping CodeRefine Server...")
         httpd.server_close()
+
+def app(environ, start_response):
+    """
+    WSGI Application Entry Point for Gunicorn / Uvicorn / Render Production Deployment.
+    """
+    body_io = io.BytesIO()
+    
+    handler = CodeRefineRequestHandler.__new__(CodeRefineRequestHandler)
+    handler.rfile = environ.get('wsgi.input')
+    handler.wfile = body_io
+    handler.path = environ.get('PATH_INFO', '/')
+    if environ.get('QUERY_STRING'):
+        handler.path += '?' + environ.get('QUERY_STRING')
+    handler.command = environ.get('REQUEST_METHOD', 'GET').upper()
+    handler.request_version = environ.get('SERVER_PROTOCOL', 'HTTP/1.1')
+    handler.requestline = f"{handler.command} {handler.path} HTTP/1.1"
+    handler.client_address = ('127.0.0.1', 8000)
+    
+    headers_dict = {}
+    for key, val in environ.items():
+        if key.startswith('HTTP_'):
+            h_name = key[5:].replace('_', '-').title()
+            headers_dict[h_name] = val
+        elif key in ('CONTENT_TYPE', 'CONTENT_LENGTH'):
+            h_name = key.replace('_', '-').title()
+            headers_dict[h_name] = val
+    handler.headers = headers_dict
+    handler.close_connection = True
+    
+    method_name = f"do_{handler.command}"
+    if hasattr(handler, method_name):
+        getattr(handler, method_name)()
+    else:
+        handler.send_error_json(f"Method {handler.command} not allowed", 405)
+        
+    raw_response = body_io.getvalue()
+    header_end = raw_response.find(b"\r\n\r\n")
+    if header_end != -1:
+        header_bytes = raw_response[:header_end]
+        response_body = raw_response[header_end + 4:]
+        lines = header_bytes.decode('utf-8', errors='replace').split("\r\n")
+        
+        status_line = lines[0]
+        status_parts = status_line.split(" ", 2)
+        status_str = f"{status_parts[1]} {status_parts[2]}" if len(status_parts) >= 3 else "200 OK"
+        
+        response_headers = []
+        for line in lines[1:]:
+            if ":" in line:
+                name, val = line.split(":", 1)
+                response_headers.append((name.strip(), val.strip()))
+                
+        start_response(status_str, response_headers)
+        return [response_body]
+    else:
+        start_response("200 OK", [("Content-Type", "text/html")])
+        return [raw_response]
 
 if __name__ == "__main__":
     host = os.getenv("HOST", "0.0.0.0")
