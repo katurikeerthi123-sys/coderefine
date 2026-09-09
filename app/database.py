@@ -101,26 +101,28 @@ class ConnectionWrapper:
 
 def get_connection():
     if IS_POSTGRES:
-        import psycopg2
-        # Translate postgres:// to postgresql:// if needed for psycopg2 compatibility
-        url = DATABASE_URL
-        if url.startswith("postgres://"):
-            url = url.replace("postgres://", "postgresql://", 1)
-        conn = psycopg2.connect(url, connect_timeout=5)
-        return conn
-    else:
-        db_path = DATABASE_URL
-        if db_path.startswith("sqlite:///"):
-            db_path = db_path.replace("sqlite:///", "", 1)
-        conn = sqlite3.connect(db_path)
-        conn.execute("PRAGMA foreign_keys = ON;")
-        return conn
+        try:
+            import psycopg2
+            url = DATABASE_URL
+            if url.startswith("postgres://"):
+                url = url.replace("postgres://", "postgresql://", 1)
+            conn = psycopg2.connect(url, connect_timeout=5)
+            return conn, True
+        except Exception as e:
+            print(f"Warning: PostgreSQL connection failed ({str(e)}). Falling back to local SQLite database.")
+    
+    db_path = DATABASE_URL if not IS_POSTGRES else os.path.join(BASE_DIR, "app.db")
+    if db_path.startswith("sqlite:///"):
+        db_path = db_path.replace("sqlite:///", "", 1)
+    conn = sqlite3.connect(db_path)
+    conn.execute("PRAGMA foreign_keys = ON;")
+    return conn, False
 
 @contextmanager
 def get_db():
-    conn = get_connection()
+    conn, is_postgres = get_connection()
     try:
-        yield ConnectionWrapper(conn, IS_POSTGRES)
+        yield ConnectionWrapper(conn, is_postgres)
         conn.commit()
     except Exception as e:
         conn.rollback()
@@ -133,103 +135,104 @@ def init_db():
     try:
         with get_db() as conn:
             cursor = conn.cursor()
+            is_postgres = conn.is_postgres
         
-        # Create users table
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            hashed_password TEXT NOT NULL,
-            gemini_key TEXT,
-            groq_key TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-        """)
-        
-        # Check if groq_key exists in users table
-        has_groq_key = False
-        if IS_POSTGRES:
-            cursor.execute(
-                "SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'groq_key';"
-            )
-            if cursor.fetchone():
-                has_groq_key = True
-        else:
-            cursor.execute("PRAGMA table_info(users);")
-            for row in cursor.fetchall():
-                if row[1] == 'groq_key' or row.get('name') == 'groq_key':
+            # Create users table
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                hashed_password TEXT NOT NULL,
+                gemini_key TEXT,
+                groq_key TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """)
+            
+            # Check if groq_key exists in users table
+            has_groq_key = False
+            if is_postgres:
+                cursor.execute(
+                    "SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'groq_key';"
+                )
+                if cursor.fetchone():
                     has_groq_key = True
-                    break
-                    
-        if not has_groq_key:
-            try:
-                cursor.execute("ALTER TABLE users ADD COLUMN groq_key TEXT;")
-                print("Added column groq_key to users table.")
-            except Exception as e:
-                print(f"Warning: Failed to add groq_key column: {str(e)}")
-        
-        # Create reviews table
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS reviews (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            title TEXT NOT NULL,
-            language TEXT NOT NULL,
-            original_code TEXT NOT NULL,
-            optimized_code TEXT NOT NULL,
-            review_json TEXT NOT NULL,
-            chat_json TEXT,
-            extra_json TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        );
-        """)
-        
-        # Check if chat_json exists in reviews table
-        has_chat_json = False
-        if IS_POSTGRES:
-            cursor.execute(
-                "SELECT 1 FROM information_schema.columns WHERE table_name = 'reviews' AND column_name = 'chat_json';"
-            )
-            if cursor.fetchone():
-                has_chat_json = True
-        else:
-            cursor.execute("PRAGMA table_info(reviews);")
-            for row in cursor.fetchall():
-                if row[1] == 'chat_json' or row.get('name') == 'chat_json':
+            else:
+                cursor.execute("PRAGMA table_info(users);")
+                for row in cursor.fetchall():
+                    if row[1] == 'groq_key' or row.get('name') == 'groq_key':
+                        has_groq_key = True
+                        break
+                        
+            if not has_groq_key:
+                try:
+                    cursor.execute("ALTER TABLE users ADD COLUMN groq_key TEXT;")
+                    print("Added column groq_key to users table.")
+                except Exception as e:
+                    print(f"Warning: Failed to add groq_key column: {str(e)}")
+            
+            # Create reviews table
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS reviews (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                language TEXT NOT NULL,
+                original_code TEXT NOT NULL,
+                optimized_code TEXT NOT NULL,
+                review_json TEXT NOT NULL,
+                chat_json TEXT,
+                extra_json TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+            """)
+            
+            # Check if chat_json exists in reviews table
+            has_chat_json = False
+            if is_postgres:
+                cursor.execute(
+                    "SELECT 1 FROM information_schema.columns WHERE table_name = 'reviews' AND column_name = 'chat_json';"
+                )
+                if cursor.fetchone():
                     has_chat_json = True
-                    break
+            else:
+                cursor.execute("PRAGMA table_info(reviews);")
+                for row in cursor.fetchall():
+                    if row[1] == 'chat_json' or row.get('name') == 'chat_json':
+                        has_chat_json = True
+                        break
+                        
+            if not has_chat_json:
+                try:
+                    cursor.execute("ALTER TABLE reviews ADD COLUMN chat_json TEXT;")
+                    print("Added column chat_json to reviews table.")
+                except Exception as e:
+                    print(f"Warning: Failed to add chat_json column: {str(e)}")
                     
-        if not has_chat_json:
-            try:
-                cursor.execute("ALTER TABLE reviews ADD COLUMN chat_json TEXT;")
-                print("Added column chat_json to reviews table.")
-            except Exception as e:
-                print(f"Warning: Failed to add chat_json column: {str(e)}")
-                
-        # Check if extra_json exists in reviews table
-        has_extra_json = False
-        if IS_POSTGRES:
-            cursor.execute(
-                "SELECT 1 FROM information_schema.columns WHERE table_name = 'reviews' AND column_name = 'extra_json';"
-            )
-            if cursor.fetchone():
-                has_extra_json = True
-        else:
-            cursor.execute("PRAGMA table_info(reviews);")
-            for row in cursor.fetchall():
-                if row[1] == 'extra_json' or row.get('name') == 'extra_json':
+            # Check if extra_json exists in reviews table
+            has_extra_json = False
+            if is_postgres:
+                cursor.execute(
+                    "SELECT 1 FROM information_schema.columns WHERE table_name = 'reviews' AND column_name = 'extra_json';"
+                )
+                if cursor.fetchone():
                     has_extra_json = True
-                    break
-                    
-        if not has_extra_json:
-            try:
-                cursor.execute("ALTER TABLE reviews ADD COLUMN extra_json TEXT;")
-                print("Added column extra_json to reviews table.")
-            except Exception as e:
-                print(f"Warning: Failed to add extra_json column: {str(e)}")
-        
-        print("Database initialized successfully.")
+            else:
+                cursor.execute("PRAGMA table_info(reviews);")
+                for row in cursor.fetchall():
+                    if row[1] == 'extra_json' or row.get('name') == 'extra_json':
+                        has_extra_json = True
+                        break
+                        
+            if not has_extra_json:
+                try:
+                    cursor.execute("ALTER TABLE reviews ADD COLUMN extra_json TEXT;")
+                    print("Added column extra_json to reviews table.")
+                except Exception as e:
+                    print(f"Warning: Failed to add extra_json column: {str(e)}")
+            
+            print("Database initialized successfully.")
     except Exception as e:
         print(f"Warning: Database initialization error: {str(e)}")
 
