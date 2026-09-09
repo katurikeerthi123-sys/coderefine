@@ -38,5 +38,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "5256
 # Default Groq configuration
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 DEFAULT_GROQ_TEXT_MODEL = os.getenv("DEFAULT_GROQ_TEXT_MODEL", "llama-3.3-70b-versatile")
-DEFAULT_GROQ_VISION_MODEL = os.getenv("DEFAULT_GROQ_VISION_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
+DEFAULT_GROQ_VISION_MODEL = os.getenv("DEFAULT_GROQ_VISION_MODEL", "llama-3.2-11b-vision-preview")
+
+
 
