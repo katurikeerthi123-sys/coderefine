@@ -2,7 +2,7 @@ import json
 import re
 import os
 import urllib.parse
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Dict, Any, Optional
 
@@ -723,7 +723,7 @@ def sys_stderr_write(msg: str):
 
 def run_server(host: str = "0.0.0.0", port: int = 8000):
     server_address = (host, port)
-    httpd = HTTPServer(server_address, CodeRefineRequestHandler)
+    httpd = ThreadingHTTPServer(server_address, CodeRefineRequestHandler)
     print(f"CodeRefine HTTP Server running on http://{host}:{port}/")
     try:
         httpd.serve_forever()
