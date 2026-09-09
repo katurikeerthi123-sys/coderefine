@@ -2,7 +2,7 @@ import sqlite3
 import re
 import os
 from contextlib import contextmanager
-from app.config import DATABASE_URL
+from app.config import DATABASE_URL, BASE_DIR
 
 # Determine DB type
 IS_POSTGRES = DATABASE_URL.startswith("postgres://") or DATABASE_URL.startswith("postgresql://")
