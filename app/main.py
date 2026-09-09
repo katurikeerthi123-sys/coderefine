@@ -65,6 +65,13 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
 
+    def do_HEAD(self):
+        """Handle HEAD requests for uptime pings and health checks."""
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/html')
+        self.send_header('Content-Length', '0')
+        self.end_headers()
+
     def send_json(self, data: Any, status_code: int = 200):
         """Helper to send JSON response."""
         response_bytes = json.dumps(data).encode('utf-8')
