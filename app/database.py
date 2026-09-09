@@ -106,7 +106,7 @@ def get_connection():
         url = DATABASE_URL
         if url.startswith("postgres://"):
             url = url.replace("postgres://", "postgresql://", 1)
-        conn = psycopg2.connect(url)
+        conn = psycopg2.connect(url, connect_timeout=5)
         return conn
     else:
         db_path = DATABASE_URL
@@ -130,8 +130,9 @@ def get_db():
 
 def init_db():
     """Initializes the database schema if tables do not exist."""
-    with get_db() as conn:
-        cursor = conn.cursor()
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
         
         # Create users table
         cursor.execute("""
@@ -229,6 +230,8 @@ def init_db():
                 print(f"Warning: Failed to add extra_json column: {str(e)}")
         
         print("Database initialized successfully.")
+    except Exception as e:
+        print(f"Warning: Database initialization error: {str(e)}")
 
 if __name__ == "__main__":
     init_db()
