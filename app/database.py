@@ -232,9 +232,68 @@ def init_db():
                 except Exception as e:
                     print(f"Warning: Failed to add extra_json column: {str(e)}")
             
-            print("Database initialized successfully.")
+            # Create agent_tasks table
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS agent_tasks (
+                id TEXT PRIMARY KEY,
+                user_id INTEGER,
+                goal TEXT NOT NULL,
+                status TEXT NOT NULL,
+                plan_json TEXT,
+                summary_text TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """)
+
+            # Create agent_steps table
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS agent_steps (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_id TEXT NOT NULL,
+                step_index INTEGER NOT NULL,
+                action_type TEXT NOT NULL,
+                thought TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (task_id) REFERENCES agent_tasks(id) ON DELETE CASCADE
+            );
+            """)
+
+            # Create agent_tool_calls table
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS agent_tool_calls (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_id TEXT NOT NULL,
+                step_index INTEGER NOT NULL,
+                tool_name TEXT NOT NULL,
+                input_json TEXT,
+                output_text TEXT,
+                status TEXT,
+                duration_ms INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (task_id) REFERENCES agent_tasks(id) ON DELETE CASCADE
+            );
+            """)
+
+            # Create agent_approvals table
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS agent_approvals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_id TEXT NOT NULL,
+                action_summary TEXT NOT NULL,
+                patch_diff TEXT,
+                target_file TEXT,
+                new_content TEXT,
+                status TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (task_id) REFERENCES agent_tasks(id) ON DELETE CASCADE
+            );
+            """)
+
+            print("Database & Agentic tables initialized successfully.")
     except Exception as e:
         print(f"Warning: Database initialization error: {str(e)}")
 
 if __name__ == "__main__":
     init_db()
+

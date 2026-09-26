@@ -682,10 +682,11 @@ function switchTab(tabId) {
   currentTab = tabId;
   
   // Set tab button highlights
-  const tabs = ["review", "complexity", "explain", "screenshare", "howitworks"];
+  const tabs = ["review", "complexity", "explain", "agent", "screenshare", "howitworks"];
   tabs.forEach(t => {
     const btn = document.getElementById(`tab-${t}`);
     const panel = document.getElementById(`panel-${t}`);
+    if (!btn || !panel) return;
     
     if (t === tabId) {
       btn.className = "px-5 py-3.5 text-sm font-semibold border-b-2 tab-active flex items-center gap-2 transition-all";
@@ -1877,3 +1878,143 @@ async function saveCurrentSessionCode() {
     console.error("Failed to auto-save current session:", err);
   }
 }
+
+// ================= AGENT STUDIO CLIENT FUNCTIONS =================
+let activeAgentTaskId = null;
+let agentTimerInterval = null;
+
+async function startAgentTask() {
+  const goalInput = document.getElementById("agent-goal-input");
+  const goal = goalInput ? goalInput.value.trim() : "";
+  if (!goal) {
+    alert("Please enter a task goal description.");
+    return;
+  }
+
+  const badge = document.getElementById("agent-status-badge");
+  const container = document.getElementById("agent-timeline-container");
+  const btn = document.getElementById("btn-start-agent");
+
+  if (badge) badge.textContent = "RUNNING";
+  if (btn) btn.disabled = true;
+  if (container) container.innerHTML = `<div class="text-indigo-400 font-semibold animate-pulse">Initializing Agent Engine & Planning...</div>`;
+
+  try {
+    const response = await fetch("/api/agent/tasks", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ goal: goal })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json();
+      alert(`Agent launch error: ${errData.detail || "Server error"}`);
+      if (btn) btn.disabled = false;
+      return;
+    }
+
+    const state = await response.json();
+    activeAgentTaskId = state.task_id;
+    renderAgentState(state);
+    startAgentTimer();
+  } catch (err) {
+    alert(`Network Error: ${err.message}`);
+    if (btn) btn.disabled = false;
+  }
+}
+
+function renderAgentState(state) {
+  const badge = document.getElementById("agent-status-badge");
+  const container = document.getElementById("agent-timeline-container");
+  const btn = document.getElementById("btn-start-agent");
+  const approvalCard = document.getElementById("agent-approval-card");
+  const approvalSummary = document.getElementById("approval-summary");
+  const approvalDiff = document.getElementById("approval-diff-preview");
+
+  if (badge) {
+    badge.textContent = state.status.toUpperCase();
+    if (state.status === "completed") {
+      badge.className = "px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+      if (btn) btn.disabled = false;
+      stopAgentTimer();
+    } else if (state.status === "awaiting_approval") {
+      badge.className = "px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30";
+    } else if (state.status === "failed") {
+      badge.className = "px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/20 text-rose-400 border border-rose-500/30";
+      if (btn) btn.disabled = false;
+      stopAgentTimer();
+    }
+  }
+
+  // Render Human Approval Gate Card if awaiting approval
+  if (state.status === "awaiting_approval" && state.pending_approval) {
+    if (approvalCard) approvalCard.classList.remove("hidden");
+    if (approvalSummary) approvalSummary.textContent = state.pending_approval.action_summary || "Patch proposed";
+    if (approvalDiff) approvalDiff.textContent = state.pending_approval.patch_diff || "Code content update proposed.";
+  } else {
+    if (approvalCard) approvalCard.classList.add("hidden");
+  }
+
+  // Render Timeline steps
+  if (container && state.steps) {
+    container.innerHTML = state.steps.map(s => `
+      <div class="glass-panel p-3 rounded-xl border border-slate-200/50 dark:border-white/10 space-y-1">
+        <div class="flex items-center justify-between text-xs font-bold text-indigo-400">
+          <span>Step ${s.step_index}: ${s.action_type}</span>
+          <span class="text-[10px] text-slate-500">${new Date(s.timestamp * 1000).toLocaleTimeString()}</span>
+        </div>
+        <p class="text-slate-300 font-sans text-xs">${s.thought || ""}</p>
+      </div>
+    `).join("");
+  }
+}
+
+async function approveAgentTask() {
+  if (!activeAgentTaskId) return;
+  const container = document.getElementById("agent-timeline-container");
+  if (container) container.innerHTML += `<div class="text-amber-400 font-semibold animate-pulse mt-2">Action approved! Running verification & self-correction loop...</div>`;
+
+  try {
+    const response = await fetch(`/api/agent/tasks/${activeAgentTaskId}/approve`, {
+      method: "POST",
+      headers: getAuthHeaders()
+    });
+
+    const state = await response.json();
+    renderAgentState(state);
+  } catch (err) {
+    alert(`Approval Error: ${err.message}`);
+  }
+}
+
+async function cancelAgentTask() {
+  if (!activeAgentTaskId) return;
+  try {
+    const response = await fetch(`/api/agent/tasks/${activeAgentTaskId}/cancel`, {
+      method: "POST",
+      headers: getAuthHeaders()
+    });
+
+    const state = await response.json();
+    renderAgentState(state);
+  } catch (err) {
+    alert(`Cancel Error: ${err.message}`);
+  }
+}
+
+function startAgentTimer() {
+  stopAgentTimer();
+  const timerEl = document.getElementById("agent-timer");
+  let start = Date.now();
+  agentTimerInterval = setInterval(() => {
+    if (timerEl) timerEl.textContent = `${((Date.now() - start) / 1000).toFixed(1)}s`;
+  }, 100);
+}
+
+function stopAgentTimer() {
+  if (agentTimerInterval) {
+    clearInterval(agentTimerInterval);
+    agentTimerInterval = null;
+  }
+}
+

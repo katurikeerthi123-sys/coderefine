@@ -11,6 +11,7 @@ from app.config import BASE_DIR, JWT_SECRET_KEY
 from app.database import get_db, init_db
 from app.auth_service import hash_password, verify_password, create_access_token, authenticate_user
 from app.services import groq_service, utils
+from app.agents.agent import AgenticEngine, ACTIVE_TASKS
 
 # Ensure DB initialized on startup
 init_db()
@@ -218,6 +219,37 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                             "created_at": row["created_at"].isoformat() if hasattr(row["created_at"], "isoformat") else str(row["created_at"] or "")
                         })
                 self.send_json(history)
+                return
+
+            # GET /api/agent/tasks/{id}/events (Server-Sent Events stream)
+            match_events = re.match(r'^/api/agent/tasks/([^/]+)/events$', path)
+            if match_events:
+                task_id = match_events.group(1)
+                state = ACTIVE_TASKS.get(task_id)
+                if not state:
+                    self.send_error_json("Agent task not found", 404)
+                    return
+
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/event-stream')
+                self.send_header('Cache-Control', 'no-cache')
+                self.send_header('Connection', 'keep-alive')
+                self.end_headers()
+
+                event_data = f"data: {json.dumps(state.to_dict())}\n\n"
+                self.wfile.write(event_data.encode('utf-8'))
+                self.wfile.flush()
+                return
+
+            # GET /api/agent/tasks/{id}
+            match_task = re.match(r'^/api/agent/tasks/([^/]+)$', path)
+            if match_task:
+                task_id = match_task.group(1)
+                state = ACTIVE_TASKS.get(task_id)
+                if not state:
+                    self.send_error_json("Agent task not found", 404)
+                    return
+                self.send_json(state.to_dict())
                 return
 
             # Route not matched
@@ -688,6 +720,51 @@ class CodeRefineRequestHandler(BaseHTTPRequestHandler):
                     "review_json": json.loads(original["review_json"]),
                     "chat_history": []
                 }, 201)
+                return
+
+            # POST /api/agent/tasks
+            if path == "/api/agent/tasks":
+                user = self.get_authenticated_user()
+                user_id = user["id"] if user else None
+                user_groq_key = user.get("groq_key") if user else None
+                
+                goal = data.get("goal", "").strip()
+                if not goal:
+                    self.send_error_json("Goal description is required", 400)
+                    return
+                    
+                engine = AgenticEngine(user_groq_key=user_groq_key)
+                state = engine.create_task(goal=goal, user_id=user_id)
+                state = engine.run_task_steps(state.task_id, max_steps=5)
+                
+                self.send_json(state.to_dict(), 201)
+                return
+
+            # POST /api/agent/tasks/{id}/approve
+            match_approve = re.match(r'^/api/agent/tasks/([^/]+)/approve$', path)
+            if match_approve:
+                task_id = match_approve.group(1)
+                user = self.get_authenticated_user()
+                user_groq_key = user.get("groq_key") if user else None
+                
+                engine = AgenticEngine(user_groq_key=user_groq_key)
+                try:
+                    state = engine.approve_and_resume(task_id)
+                    self.send_json(state.to_dict())
+                except (KeyError, ValueError) as err:
+                    self.send_error_json(str(err), 400)
+                return
+
+            # POST /api/agent/tasks/{id}/cancel
+            match_cancel = re.match(r'^/api/agent/tasks/([^/]+)/cancel$', path)
+            if match_cancel:
+                task_id = match_cancel.group(1)
+                engine = AgenticEngine()
+                try:
+                    state = engine.cancel_task(task_id)
+                    self.send_json(state.to_dict())
+                except KeyError as err:
+                    self.send_error_json(str(err), 404)
                 return
 
             # Route not matched

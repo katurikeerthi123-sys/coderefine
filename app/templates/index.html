@@ -192,6 +192,10 @@
             <i class="fa-solid fa-bug text-rose-400"></i>
             Error Debugger
           </button>
+          <button id="tab-agent" onclick="switchTab('agent')" class="px-5 py-3.5 text-sm font-semibold border-b-2 tab-inactive flex items-center gap-2 transition-all">
+            <i class="fa-solid fa-robot text-amber-400"></i>
+            Agent Studio
+          </button>
           <button id="tab-screenshare" onclick="switchTab('screenshare')" class="px-5 py-3.5 text-sm font-semibold border-b-2 tab-inactive flex items-center gap-2 transition-all">
             <i class="fa-solid fa-desktop text-emerald-400"></i>
             Live Screen sharing
@@ -205,6 +209,68 @@
 
       <!-- WORKSPACE PANELS -->
       <div class="flex-1 overflow-y-auto p-6 space-y-6">
+
+        <!-- ================= PANEL 0: AGENT STUDIO ================= -->
+        <section id="panel-agent" class="hidden space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Left Side: Task Goal & Actions -->
+            <div class="lg:col-span-5 flex flex-col space-y-4">
+              <div class="glass-panel rounded-2xl p-5 space-y-4">
+                <div class="flex items-center justify-between">
+                  <h3 class="font-outfit font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i class="fa-solid fa-robot text-amber-400"></i>
+                    Autonomous Agent Task
+                  </h3>
+                  <span id="agent-status-badge" class="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-white/10 text-slate-500">IDLE</span>
+                </div>
+                
+                <textarea id="agent-goal-input" rows="4" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl p-3 text-sm text-slate-900 dark:text-white font-mono focus:outline-none focus:border-indigo-500" placeholder="e.g. Find why login function is failing, generate unit tests, fix the bug, and verify self-correction..."></textarea>
+                
+                <button id="btn-start-agent" onclick="startAgentTask()" class="w-full py-3 bg-gradient-to-r from-amber-500 to-indigo-600 hover:from-amber-600 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all shadow-md flex items-center justify-center gap-2">
+                  <i class="fa-solid fa-play"></i>
+                  <span>Launch Agent Task</span>
+                </button>
+              </div>
+
+              <!-- Pending Approval Card (Human-in-the-Loop) -->
+              <div id="agent-approval-card" class="hidden glass-panel rounded-2xl p-5 space-y-4 border-2 border-amber-500/50 bg-amber-500/5">
+                <div class="flex items-center justify-between text-amber-400 font-bold text-sm">
+                  <span class="flex items-center gap-2"><i class="fa-solid fa-shield-halved"></i> Human Approval Required</span>
+                  <span class="text-xs uppercase bg-amber-500/20 px-2 py-0.5 rounded">Action Gate</span>
+                </div>
+                <p id="approval-summary" class="text-xs text-slate-300">The agent proposes applying code changes to workspace.</p>
+                <div id="approval-diff-preview" class="bg-slate-900 text-xs font-mono p-3 rounded-lg overflow-x-auto max-h-40 border border-white/10 text-slate-200 whitespace-pre"></div>
+                <div class="flex gap-2">
+                  <button onclick="approveAgentTask()" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-check"></i> Approve & Resume
+                  </button>
+                  <button onclick="cancelAgentTask()" class="py-2 px-4 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-xl text-xs flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-xmark"></i> Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Side: Real-time Interactive Timeline -->
+            <div class="lg:col-span-7 flex flex-col space-y-4">
+              <div class="glass-panel rounded-2xl p-5 flex-1 flex flex-col min-h-[400px]">
+                <div class="flex items-center justify-between border-b border-slate-200/50 dark:border-white/10 pb-3 mb-4">
+                  <h3 class="font-outfit font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i class="fa-solid fa-timeline text-indigo-400"></i>
+                    Live Agent Execution Timeline
+                  </h3>
+                  <span id="agent-timer" class="text-xs font-mono text-slate-400">0.0s</span>
+                </div>
+                
+                <div id="agent-timeline-container" class="flex-1 overflow-y-auto space-y-3 font-mono text-xs pr-2">
+                  <div class="text-slate-500 italic">No agent task running. Enter a goal above to launch.</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
 
         <!-- ================= PANEL 1: CODE REVIEW ================= -->
         <section id="panel-review" class="space-y-6">
