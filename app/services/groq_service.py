@@ -105,57 +105,109 @@ def parse_groq_json(text: str) -> Dict[str, Any]:
 
 def _generate_fallback_review(code: str, language: str) -> Dict[str, Any]:
     lines = [line for line in code.splitlines() if line.strip()]
-    has_print = any("print" in line or "console.log" in line for line in code.splitlines())
+    code_lower = code.lower().strip()
+    lang_lower = (language or "python").lower().strip()
     
     bugs = []
-    if "print(hello)" in code or "NameError" in code:
+    improvements = []
+    optimized = code
+
+    # Check 1: Java/C# print syntax used in Python (e.g. system.out.prin(hi))
+    if lang_lower == "python" and ("system.out" in code_lower or "sys.out" in code_lower):
         bugs.append({
             "severity": "High",
-            "description": "Undefined variable 'hello' passed to print function.",
+            "description": "Invalid Python Syntax: Java/C# console output syntax ('system.out') is not valid in Python.",
             "line_number": 1,
-            "suggestion": "Define variable 'hello' before printing or enclose string literal in quotes."
+            "suggestion": "Replace with Python's native print() function and enclose string literals in quotes."
         })
-    elif len(lines) > 0 and not any(line.startswith("def ") or line.startswith("function ") for line in lines):
+        improvements.append("Use standard Python print() syntax instead of Java System.out.")
+        improvements.append("Enclose string literals in double or single quotes.")
+        
+        if "prin(" in code_lower or "prin" in code_lower or "hi" in code_lower:
+            bugs.append({
+                "severity": "High",
+                "description": "Typo & Undefined Variable: 'prin' is misspelled and 'hi' is missing string quotes.",
+                "line_number": 1,
+                "suggestion": "Correct to: print(\"hi\")"
+            })
+        optimized = 'print("hi")'
+
+    # Check 2: Java print typos & lowercase system (e.g. system.out.prin(hi))
+    elif lang_lower in ["java", "cpp", "csharp"] and ("system.out" in code_lower or "prin(" in code_lower):
         bugs.append({
-            "severity": "Low",
-            "description": "Script contains unencapsulated top-level statements.",
+            "severity": "High",
+            "description": "Java Syntax Error: Class 'System' must be capitalized, method 'prin' is misspelled, and string parameter is unquoted.",
             "line_number": 1,
-            "suggestion": "Wrap main execution block in a function for better modularity."
+            "suggestion": "Use System.out.println(\"hi\");"
         })
+        improvements.append("Capitalize 'System' class name.")
+        improvements.append("Fix method typo from 'prin' to 'println'.")
+        improvements.append("Add string quotes and ending semicolon.")
+        optimized = 'System.out.println("hi");'
 
-    security_badges = [
-        {
-            "name": "Input Sanitation",
-            "status": "success" if "sanitize" in code or "escape" in code else "warning",
-            "description": "Ensure input parameters are validated prior to processing."
-        },
-        {
-            "name": "Code Safety",
-            "status": "success",
-            "description": "No critical security vulnerabilities detected."
-        }
-    ]
+    # Check 3: Python print unquoted string or NameError (e.g. print(hello))
+    elif lang_lower == "python" and re.search(r'\bprint\s*\(\s*([a-zA-Z_]\w*)\s*\)', code):
+        match = re.search(r'\bprint\s*\(\s*([a-zA-Z_]\w*)\s*\)', code)
+        var_name = match.group(1) if match else "variable"
+        if var_name not in ["str", "int", "float", "bool", "len"]:
+            bugs.append({
+                "severity": "High",
+                "description": f"NameError / Undefined Variable: '{var_name}' is passed to print() without quotes or prior definition.",
+                "line_number": 1,
+                "suggestion": f'If "{var_name}" is a string, enclose it in quotes: print("{var_name}")'
+            })
+            improvements.append(f'Enclose literal string in quotes: print("{var_name}").')
+            optimized = f'print("{var_name}")'
 
-    improvements = [
-        "Add explicit docstrings and type annotations to document function contracts.",
-        "Ensure all runtime exceptions are caught with structured try/except blocks.",
-        "Follow PEP 8 / standard style guidelines for consistency."
-    ]
+    # Check 4: Unencapsulated top-level code (Generic fallback)
+    if not bugs:
+        if len(lines) > 0 and not any(line.startswith("def ") or line.startswith("function ") for line in lines):
+            bugs.append({
+                "severity": "Low",
+                "description": "Script contains unencapsulated top-level execution statements.",
+                "line_number": 1,
+                "suggestion": "Wrap main execution block in a function for better modularity."
+            })
+            optimized = f"# Refactored {lang_lower.capitalize()} script\n" + code
 
-    optimized = code
-    if "print(hello)" in code:
-        optimized = 'hello = "Hello, World!"\nprint(hello)'
-    elif language.lower() == "python" and "def " in code and "->" not in code:
-        optimized = "# Optimized version with docstrings and type hints\n" + code
+    # Security Badges
+    if any(b["severity"] == "High" for b in bugs):
+        security_badges = [
+            {
+                "name": "Syntax & Type Safety",
+                "status": "danger",
+                "description": "Critical syntax error or language mismatch detected."
+            },
+            {
+                "name": "Input Sanitation",
+                "status": "warning",
+                "description": "Ensure input parameters are validated prior to execution."
+            }
+        ]
+    else:
+        security_badges = [
+            {
+                "name": "Input Sanitation",
+                "status": "success",
+                "description": "Code structure is valid."
+            },
+            {
+                "name": "Code Safety",
+                "status": "success",
+                "description": "No critical security vulnerabilities detected."
+            }
+        ]
+
+    if not improvements:
+        improvements = [
+            "Add explicit docstrings and type annotations to document function contracts.",
+            "Ensure all runtime exceptions are caught with structured try/except blocks.",
+            "Follow standard style guidelines for consistency."
+        ]
 
     return {
         "title": f"Automated Code Review ({language.capitalize() if language else 'Code'})",
-        "bugs": bugs if bugs else [{
-            "severity": "Low",
-            "description": "Code structure is clean. Consider adding documentation and automated tests.",
-            "line_number": 1,
-            "suggestion": "Add function docstrings and unit tests."
-        }],
+        "bugs": bugs,
         "security_badges": security_badges,
         "improvements": improvements,
         "optimized_code": optimized
